@@ -656,7 +656,7 @@ jr_000_028c:
   jr nz, jr_000_02bc
 
   ld sp, $dfff
-  xor a
+  ld a, $00
   ldh [rSVBK], a
   ldh [rVBK], a
   ld [$bd07], a
@@ -669,7 +669,7 @@ jr_000_028c:
 Call_000_02a9:
   ld a, $04
   ld [$bd06], a
-  xor a
+  ld a, $00
   ld_long $ffff, a
   ld [$bd01], a
   ld a, $04
@@ -678,7 +678,7 @@ Call_000_02a9:
 
 
 jr_000_02bc:
-  xor a
+  ld a, $00
   ld [$01f2], a
   ld a, $10
   ld [$bd06], a
@@ -1020,9 +1020,9 @@ Call_000_0453:
   and $20
   or $08
   ld [$bd06], a
-  xor a
+  ld a, $00
   ld [$bd09], a
-  xor a
+  ld a, $00
   ld [$0000], a
   ld [$3000], a
   ld [$4000], a
@@ -1097,7 +1097,7 @@ Call_000_04c5:
   pop de
   push de
   push hl
-  xor a
+  ld a, $00
   ld [$bd02], a
   ld [$bd03], a
 
@@ -1141,7 +1141,7 @@ Call_000_04f3:
   pop de
   push de
   push hl
-  xor a
+  ld a, $00
   ld [$bd02], a
   ld [$bd03], a
 
@@ -1235,11 +1235,11 @@ Call_000_0545:
 
 
 SetCPUSpeedSlow:
-  xor a
+  ld a, $00
   ldh [rIE], a;disable interrupts
   ld a, P1F_GET_NONE
   ldh [rP1], a
-  ld a, KEY1F_DBLSPEED
+  ld a, KEY1F_PREPARE
   ldh [rKEY1], a
   stop
   ret
@@ -1335,7 +1335,7 @@ jr_000_05c1:
 
   ld a, [bc]
   ld [hl+], a
-  xor a
+  ld a, $00
   cp e
   jr nz, jr_000_05bd
 
@@ -1394,7 +1394,7 @@ Call_000_05ff:
 
 
 Call_000_0605:
-  xor a
+  ld a, $00
   ld [$bd0f], a
   ret
 
@@ -1570,7 +1570,7 @@ Call_000_06e3:
   ld de, _OAMRAM
   ld c, $01
   call CopyDEtoEndOfSRAM
-  xor a
+  ld a, $00
   ldh [rLCDC], a
   ldh [rNR51], a
   ret
@@ -1694,7 +1694,7 @@ Call_000_07af:
   and 1
   jr z, .isDMG
 
-  xor a
+  ld a, $00
   ldh [rVBK], a
   ldh a, [rVBK]
   and 1
@@ -1702,7 +1702,7 @@ Call_000_07af:
 
   ld a, 1
   ldh [rSVBK], a
-  xor a
+  ld a, $00
   ldh [rVBK], a
   ret
 .isDMG:
@@ -1731,7 +1731,7 @@ Call_000_07ce:
 jr_000_07f7:
   ld a, $02
   ld [$bd09], a
-  xor a
+  ld a, $00
   ld [$bd09], a
   pop hl
   pop de
@@ -1752,7 +1752,7 @@ jr_000_080a:
 Call_000_0814:
   ld a, $40
   ld [$bd02], a
-  xor a
+  ld a, $00
   ld [$bd06], a
   ld a, [$be05]
   ld h, a
@@ -1925,7 +1925,7 @@ Call_000_092e:
 
 
 Call_000_0948:
-  xor a
+  ld a, $00
   ldh [rLCDC], a
   ldh [rVBK], a
   ld a, $01
@@ -1933,11 +1933,11 @@ Call_000_0948:
   ret
 
 
-  xor a
+  ld a, $00
   ld [$bd07], a
   ld a, $04
   ld [$bd09], a
-  xor a
+  ld a, $00
   ld [$bd09], a
   jp Jump_000_09be
 
@@ -2032,7 +2032,7 @@ jr_000_09be:
   nop
 
 WaitVBL:;maybe?
-  xor a;clear interrupt flags
+  ld a, $00;clear interrupt flags
   ldh [rIF], a
 
 .waitVBL:
@@ -2086,7 +2086,7 @@ jr_000_09f5:
   ld [bc], a
   inc bc
   dec de
-  xor a
+  ld a, $00
   cp e
   jr nz, jr_000_09f5
 
@@ -2108,7 +2108,7 @@ jr_000_0a0a:
   ld a, c
   ld [hl+], a
   dec de
-  xor a
+  ld a, $00
   cp e
   jr nz, jr_000_0a0a
 
@@ -2124,11 +2124,13 @@ REPT 4;multiple cycles to avoid button bounce
   ldh a, [rP1];load dPad
 ENDR
   and a, $F
-  swap a
   ld e, a
-
   ld a, P1F_GET_BTN
   ldh [rP1], a
+  sla e
+  sla e
+  sla e
+  sla e
 REPT 4
   ldh a, [rP1];load buttons
 ENDR
@@ -2139,8 +2141,8 @@ ENDR
   ld a, P1F_GET_NONE
   ldh [rP1], a
   
-  ld hl, wGamepadState
-  ld [hl], e;store button state
+  ; ld hl, wGamepadState
+  ; ld [hl], e;store button state
 
   ;process keyboard here
   ret
@@ -4754,16 +4756,16 @@ Call_000_1770:
   ld a, [de]
   ld [hl], a
   ld hl, sp+$21
-  xor a
+  ld a, $00
   sub [hl]
   inc hl
-  xor a
+  ld a, $00
   sbc [hl]
   inc hl
   ld a, $80
   sbc [hl]
   inc hl
-  xor a
+  ld a, $00
   sbc [hl]
   jr nc, jr_000_17ab
 
@@ -6331,6 +6333,8 @@ GetInput::;returns buttons in e
 
 jr_000_1fae:
   call UpdateInput
+  ld hl, wGamepadState
+  ld [hl], e;store button state
   ld hl, $09c0
   ld a, [hl]
   or a
@@ -6357,7 +6361,11 @@ jr_000_1fae:
 .checkButtons:
   ld hl, wGamepadState
   ld a, [hl]
-  and $f0
+  or a;is anything pressed
+  jr z, .noButtonsPressed
+
+  ld a, [hl]
+  and $f0;is it just the dPad
   jr z, .noButtonsPressed
 
   ld hl, $c2b5
@@ -6747,7 +6755,7 @@ Call_000_2193:
   ld a, $14
   sub c
   ld c, a
-  xor a
+  ld a, $00
   sbc b
   ld b, a
   sra b
@@ -10203,7 +10211,7 @@ Jump_000_32a9:
   jr jr_000_32d3
 
 jr_000_32d1:
-  xor a
+  ld a, $00
 
 jr_000_32d3:
   ld hl, $c2f1
@@ -12053,7 +12061,7 @@ Jump_000_3b28:
   jr jr_000_3bbc
 
 jr_000_3bba:
-  xor a
+  ld a, $00
 
 jr_000_3bbc:
   ld [bc], a
