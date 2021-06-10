@@ -1,0 +1,86 @@
+# all bin files
+bin/*
+
+# files created in /img, /data, and /music
+img/**/*.asm
+img/**/*.tilemap
+img/**/*.propmap
+img/**/*.tiles
+maps/**/*.asm
+maps/**/*.tilemap
+data/*.asm
+data/*.inc
+music/*.asm
+music/*.bak
+
+# generated GameBoy files
+*.gb
+*.gbc
+*.map
+*.lst
+*.sym
+*.1bpp
+*.2bpp
+*.sav
+*.bin
+
+# Tiled map editor
+*.tiled-session
+
+# generated python
+__pycache__/*
+
+# generated HTML (from markdown)
+*.html
+
+# macOS Desktop Services file
+.DS_Store
+
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.sym
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Editor config folder
+*.vscode
+node_modules
