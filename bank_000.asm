@@ -656,7 +656,7 @@ jr_000_028c:
   jr nz, jr_000_02bc
 
   ld sp, $dfff
-  ld a, $00
+  xor a
   ldh [rSVBK], a
   ldh [rVBK], a
   ld [$bd07], a
@@ -669,7 +669,7 @@ jr_000_028c:
 Call_000_02a9:
   ld a, $04
   ld [$bd06], a
-  ld a, $00
+  xor a
   ld_long $ffff, a
   ld [$bd01], a
   ld a, $04
@@ -678,7 +678,7 @@ Call_000_02a9:
 
 
 jr_000_02bc:
-  ld a, $00
+  xor a
   ld [$01f2], a
   ld a, $10
   ld [$bd06], a
@@ -1020,9 +1020,9 @@ Call_000_0453:
   and $20
   or $08
   ld [$bd06], a
-  ld a, $00
+  xor a
   ld [$bd09], a
-  ld a, $00
+  xor a
   ld [$0000], a
   ld [$3000], a
   ld [$4000], a
@@ -1062,7 +1062,7 @@ Call_000_048f:
   inc hl
   ld d, [hl]
   push de
-  call $a000
+  call _SRAM;This looks important.
   pop af
   pop af
   ld [$bd08], a
@@ -1097,7 +1097,7 @@ Call_000_04c5:
   pop de
   push de
   push hl
-  ld a, $00
+  xor a
   ld [$bd02], a
   ld [$bd03], a
 
@@ -1141,7 +1141,7 @@ Call_000_04f3:
   pop de
   push de
   push hl
-  ld a, $00
+  xor a
   ld [$bd02], a
   ld [$bd03], a
 
@@ -1239,7 +1239,7 @@ SetCPUSpeedSlow:
   ldh [rIE], a;disable interrupts
   ld a, P1F_GET_NONE
   ldh [rP1], a
-  ld a, 1
+  ld a, KEY1F_DBLSPEED
   ldh [rKEY1], a
   stop
   ret
@@ -1335,7 +1335,7 @@ jr_000_05c1:
 
   ld a, [bc]
   ld [hl+], a
-  ld a, $00
+  xor a
   cp e
   jr nz, jr_000_05bd
 
@@ -1394,7 +1394,7 @@ Call_000_05ff:
 
 
 Call_000_0605:
-  ld a, $00
+  xor a
   ld [$bd0f], a
   ret
 
@@ -1560,17 +1560,17 @@ Call_000_06af:
 Call_000_06e3:
   ld a, $41
   ld [$bd02], a
-  ld de, $8000
+  ld de, _VRAM
   ld c, $10
-  call Call_000_0972
-  ld de, $c000
+  call CopyDEtoEndOfSRAM
+  ld de, _RAM
   ld c, $10
-  call Call_000_0972
+  call CopyDEtoEndOfSRAM
   call Call_000_092e
-  ld de, $fe00
+  ld de, _OAMRAM
   ld c, $01
-  call Call_000_0972
-  ld a, $00
+  call CopyDEtoEndOfSRAM
+  xor a
   ldh [rLCDC], a
   ldh [rNR51], a
   ret
@@ -1593,21 +1593,21 @@ Call_000_0713:
 
 jr_000_071d:
   push bc
-  call Call_000_07a6
+  call CopyDEtoBD02
   call Call_000_04b1
-  ld hl, $c000
+  ld hl, _RAM
   ld c, $10
-  call Call_000_0965
+  call CopyEndOfSRAMtoHL
   ld a, [$bd02]
   sub $10
   add $62
   ld d, $3e
   ld e, a
-  call Call_000_07a6
+  call CopyDEtoBD02
   call Call_000_04a8
-  ld de, $c000
+  ld de, _RAM
   ld c, $10
-  call Call_000_0972
+  call CopyDEtoEndOfSRAM
   ld a, [$bd02]
   sub $62
   ld d, $00
@@ -1645,20 +1645,20 @@ jr_000_076a:
   and $3f
   jr nz, jr_000_076a
 
-  call Call_000_097f
+  call IncrementBD02
   ld a, $01
   ldh [rVBK], a
-  ld de, $8000
+  ld de, _VRAM
   ld c, $10
-  call Call_000_0972
+  call CopyDEtoEndOfSRAM
   ld b, $02
   ld a, b
 
 jr_000_0789:
   ldh [rSVBK], a
-  ld de, $d000
+  ld de, _RAMBANK
   ld c, $08
-  call Call_000_0972
+  call CopyDEtoEndOfSRAM
   inc b
   ld a, b
   cp $08
@@ -1679,7 +1679,7 @@ jr_000_07a5:
   ret
 
 
-Call_000_07a6:
+CopyDEtoBD02:
   ld a, d
   ld [$bd03], a
   ld a, e
@@ -1688,27 +1688,25 @@ Call_000_07a6:
 
 
 Call_000_07af:
-  ld a, $01
+  ld a, 1
   ldh [rVBK], a
   ldh a, [rVBK]
-  and $01
-  jr z, jr_000_07cc
+  and 1
+  jr z, .isDMG
 
-  ld a, $00
+  xor a
   ldh [rVBK], a
   ldh a, [rVBK]
-  and $01
-  jr nz, jr_000_07cc
+  and 1
+  jr nz, .isDMG
 
-  ld a, $01
+  ld a, 1
   ldh [rSVBK], a
-  ld a, $00
+  xor a
   ldh [rVBK], a
   ret
-
-
-jr_000_07cc:
-  pop hl
+.isDMG:
+  pop hl;where is this pushed?
   ret
 
 
@@ -1733,7 +1731,7 @@ Call_000_07ce:
 jr_000_07f7:
   ld a, $02
   ld [$bd09], a
-  ld a, $00
+  xor a
   ld [$bd09], a
   pop hl
   pop de
@@ -1754,7 +1752,7 @@ jr_000_080a:
 Call_000_0814:
   ld a, $40
   ld [$bd02], a
-  ld a, $00
+  xor a
   ld [$bd06], a
   ld a, [$be05]
   ld h, a
@@ -1778,18 +1776,18 @@ Call_000_0814:
 Call_000_0844:
   ld a, $41
   ld [$bd02], a
-  ld hl, $8000
+  ld hl, _VRAM
   ld c, $10
-  call Call_000_0965
-  ld hl, $c000
+  call CopyEndOfSRAMtoHL
+  ld hl, _RAM
   ld c, $10
-  call Call_000_0965
-  ld hl, $fe00
+  call CopyEndOfSRAMtoHL
+  ld hl, _OAMRAM
   ld de, $be00
   ld hl, $ff80
   ld de, $bf80
-  call Call_000_0994
-  call Call_000_099a
+  call Copy256FromDEtoHL
+  call CopySRAMtoIO
   ret
 
 
@@ -1801,20 +1799,20 @@ Call_000_086c:
 
 jr_000_0876:
   push bc
-  call Call_000_07a6
+  call CopyDEtoBD02
   call Call_000_04a8
-  ld hl, $c000
+  ld hl, _RAM
   ld c, $10
-  call Call_000_0965
+  call CopyEndOfSRAMtoHL
   ld a, [$bd02]
   sub $72
   ld d, $00
   ld e, a
-  call Call_000_07a6
+  call CopyDEtoBD02
   call Call_000_04b1
-  ld de, $c000
+  ld de, _RAM
   ld c, $10
-  call Call_000_0972
+  call CopyDEtoEndOfSRAM
   ld a, [$bd02]
   add $62
   ld d, $3e
@@ -1876,20 +1874,20 @@ jr_000_08e4:
   and $3f
   jr nz, jr_000_08e4
 
-  call Call_000_097f
+  call IncrementBD02
   ld a, $01
   ldh [rVBK], a
-  ld hl, $8000
+  ld hl, _VRAM
   ld c, $10
-  call Call_000_0965
+  call CopyEndOfSRAMtoHL
   ld b, $02
   ld a, b
 
 jr_000_0903:
   ldh [rSVBK], a
-  ld hl, $d000
+  ld hl, _RAMBANK
   ld c, $08
-  call Call_000_0965
+  call CopyEndOfSRAMtoHL
   inc b
   ld a, b
   cp $08
@@ -1927,7 +1925,7 @@ Call_000_092e:
 
 
 Call_000_0948:
-  ld a, $00
+  xor a
   ldh [rLCDC], a
   ldh [rVBK], a
   ld a, $01
@@ -1935,92 +1933,81 @@ Call_000_0948:
   ret
 
 
-  ld a, $00
+  xor a
   ld [$bd07], a
   ld a, $04
   ld [$bd09], a
-  ld a, $00
+  xor a
   ld [$bd09], a
   jp Jump_000_09be
 
 
-Call_000_0965:
-jr_000_0965:
-  ld de, $be00
-  call Call_000_0987
-  call Call_000_097f
+CopyEndOfSRAMtoHL::;hl = address, c = count
+  ld de, $be00;last 512 bytes of _SRAM
+  call Copy512FromDEtoHL
+  call IncrementBD02
   dec c
-  jr nz, jr_000_0965
+  jr nz, CopyEndOfSRAMtoHL
 
   ret
 
 
-Call_000_0972:
-jr_000_0972:
+CopyDEtoEndOfSRAM::;de = address, c = count
   ld hl, $be00
-  call Call_000_0987
-  call Call_000_097f
+  call Copy512FromDEtoHL
+  call IncrementBD02
   dec c
-  jr nz, jr_000_0972
+  jr nz, CopyDEtoEndOfSRAM
 
   ret
 
 
-Call_000_097f:
+IncrementBD02:
   ld a, [$bd02]
   inc a
   ld [$bd02], a
   ret
 
 
-Call_000_0987:
-jr_000_0987:
-  ld a, [de]
-  ld [hl+], a
-  inc e
-  jr nz, jr_000_0987
-
+Copy512FromDEtoHL:
+.first256BytesLoop:
+    ld a, [de]
+    ld [hl+], a
+    inc e
+    jr nz, .first256BytesLoop
   inc d
-
-jr_000_098d:
-  ld a, [de]
-  ld [hl+], a
-  inc e
-  jr nz, jr_000_098d
-
+second256BytesLoop:
+    ld a, [de]
+    ld [hl+], a
+    inc e
+    jr nz, second256BytesLoop
   inc d
   ret
 
 
-Call_000_0994:
-jr_000_0994:
-  ld a, [de]
-  ld [hl+], a
-  inc e
-  jr nz, jr_000_0994
-
+Copy256FromDEtoHL:
+    ld a, [de]
+    ld [hl+], a
+    inc e
+    jr nz, Copy256FromDEtoHL
   ret
 
 
-Call_000_099a:
-  ld hl, $0627
-  ld bc, $ff00
-  ld de, $bf00
-
-jr_000_09a3:
-  ld a, [hl+]
-  ld c, a
-  ld e, a
-  cp $00
-  jr nz, jr_000_09ab
-
+CopySRAMtoIO:
+  ld hl, $0627;a table maybe?
+  ld bc, _IO
+  ld de, $bf00;last 256 bytes of _SRAM
+.loopTable:
+    ld a, [hl+]
+    ld c, a
+    ld e, a
+    cp $00
+    jr nz, .loadSRAMIntoIO
   ret
-
-
-jr_000_09ab:
+.loadSRAMIntoIO:
   ld a, [de]
   ld [bc], a
-  jr jr_000_09a3
+  jr .loopTable
 
 Call_000_09af:
   ld hl, $be00
@@ -2044,21 +2031,21 @@ jr_000_09be:
 
   nop
 
-Call_000_09c1:
-  ld a, $00
+WaitVBL:;maybe?
+  xor a;clear interrupt flags
   ldh [rIF], a
 
-jr_000_09c5:
+.waitVBL:
   ldh a, [rIF]
   and $01
-  jr z, jr_000_09c5
+  jr z, .waitVBL
 
   ret
 
 
 Call_000_09cc:
 Jump_000_09cc:
-  ld bc, $9800
+  ld bc, _SCRN0
   ld hl, $c144
   ld d, $14
 
@@ -2099,7 +2086,7 @@ jr_000_09f5:
   ld [bc], a
   inc bc
   dec de
-  ld a, $00
+  xor a
   cp e
   jr nz, jr_000_09f5
 
@@ -2121,7 +2108,7 @@ jr_000_0a0a:
   ld a, c
   ld [hl+], a
   dec de
-  ld a, $00
+  xor a
   cp e
   jr nz, jr_000_0a0a
 
@@ -2130,32 +2117,32 @@ jr_000_0a0a:
 
   ret
 
-
-Call_000_0a16:
-  ld a, $20
+UpdateInput:;puts button state in e
+  ld a, P1F_GET_DPAD
   ldh [rP1], a
-  ldh a, [rP1]
-  ldh a, [rP1]
-  ldh a, [rP1]
-  ldh a, [rP1]
-  and $0f
+REPT 4;multiple cycles to avoid button bounce
+  ldh a, [rP1];load dPad
+ENDR
+  and a, $F
+  swap a
   ld e, a
-  ld a, $10
+
+  ld a, P1F_GET_BTN
   ldh [rP1], a
-  sla e
-  sla e
-  sla e
-  sla e
-  ldh a, [rP1]
-  ldh a, [rP1]
-  ldh a, [rP1]
-  ldh a, [rP1]
-  and $0f
+REPT 4
+  ldh a, [rP1];load buttons
+ENDR
+  and a, $F
   or e
   cpl
   ld e, a
-  ld a, $30
+  ld a, P1F_GET_NONE
   ldh [rP1], a
+  
+  ld hl, wGamepadState
+  ld [hl], e;store button state
+
+  ;process keyboard here
   ret
 
 
@@ -2368,7 +2355,7 @@ jr_000_0aea:
   ld [hl], e
 
 jr_000_0b5e:
-  call Call_000_1f9b
+  call GetInput
   ld a, e
   or a
   jr nz, jr_000_0b5e
@@ -2734,7 +2721,7 @@ Call_000_0d43:
   call Call_000_0574
   call Call_000_0574
   call Call_000_05f6
-  ld de, $c000
+  ld de, _RAM
   ld hl, $002b
   push hl
   xor a
@@ -2809,7 +2796,7 @@ jr_000_0db0:
 jr_000_0db5:
   call Call_000_05e8
   ld a, e
-  ld de, $c000
+  ld de, _RAM
   ld [de], a
   ld hl, sp+$00
   ld e, l
@@ -2998,7 +2985,7 @@ Call_000_0ea2:
   ld hl, $0013
   push hl
   push de
-  ld hl, $8000
+  ld hl, _VRAM
   push hl
   call $58ba
   add sp, $06
@@ -3013,7 +3000,7 @@ Call_000_0eb5:
   ld hl, $0013
   push hl
   push de
-  ld hl, $8000
+  ld hl, _VRAM
   push hl
   call $5941
   add sp, $06
@@ -4767,16 +4754,16 @@ Call_000_1770:
   ld a, [de]
   ld [hl], a
   ld hl, sp+$21
-  ld a, $00
+  xor a
   sub [hl]
   inc hl
-  ld a, $00
+  xor a
   sbc [hl]
   inc hl
   ld a, $80
   sbc [hl]
   inc hl
-  ld a, $00
+  xor a
   sbc [hl]
   jr nc, jr_000_17ab
 
@@ -5330,7 +5317,7 @@ jr_000_1a73:
   call $67c1
   call Call_000_214d
   call Call_000_09cc
-  call Call_000_09c1
+  call WaitVBL
   ld a, [$c030]
   or a
   jr z, jr_000_1a8a
@@ -5363,7 +5350,7 @@ Jump_000_1aa7:
   ret
 
 
-  ld de, $c000
+  ld de, _RAM
   ret
 
 
@@ -6308,81 +6295,76 @@ Call_000_1f83:
   ret
 
 
-Call_000_1f88:
-jr_000_1f88:
-  call Call_000_1f9b
+GetButtonDown::;returns buttons pressed in e
+.waitForRelease:
+  call GetInput
   ld a, e
   or a
-  jr nz, jr_000_1f88
+  jr nz, .waitForRelease
 
-jr_000_1f8f:
-  call Call_000_1f9b
+.waitForPress:
+  call GetInput
   ld a, e
   or a
-  jr z, jr_000_1f8f
+  jr z, .waitForPress
 
-  ld hl, $c2b0
+  ld hl, wGamepadState
   ld e, [hl]
   ret
 
 
-Call_000_1f9b:
+GetInput::;returns buttons in e
   ld hl, $c2b3
   inc [hl]
-  jr nz, jr_000_1fa3
+  jr nz, .jr_000_1fa3
 
   inc hl
   inc [hl]
 
-jr_000_1fa3:
+.jr_000_1fa3:
   ld hl, $c2b5
   ld a, [hl]
-  sub $16
+  sub $16;is DPad pressed?
   jr nc, jr_000_1fae
 
-  call Call_000_09c1
+  call WaitVBL
 
 jr_000_1fae:
-  call Call_000_0a16
-  ld hl, $c2b0
-  ld [hl], e
+  call UpdateInput
   ld hl, $09c0
   ld a, [hl]
   or a
-  jr z, jr_000_1fd2
+  jr z, .checkButtons
 
-  ld hl, $c2b0
+.swapAB
+  ld hl, wGamepadState
   ld a, [hl]
-  and $03
-  ld d, a
+  and PADF_A | PADF_B
+  ld d, a;store A and B buttons in d
   ld a, [hl]
-  and $fc
-  ld [hl], a
-  ld a, d
-  srl a
-  or [hl]
-  ld [hl], a
-  ld a, d
-  and $01
-  add a
-  or [hl]
-  ld [hl], a
+  and ~(PADF_A | PADF_B)
+  ld [hl], a;remove A and B buttons from wGamepadState
+  ld a, d;A and B buttons
+  srl a;B in bit 0, toss A
+  or [hl];DPad, start, and select
+  ld [hl], a;store in wGamepadState
+  ld a, d;A and B buttons
+  and $01;toss B
+  add a;put A button in bit 2
+  or [hl];DPad, start, select, B
+  ld [hl], a;store in wGamepadState with A and B swapped
 
-jr_000_1fd2:
-  ld hl, $c2b0
-  ld a, [hl]
-  or a
-  jr z, jr_000_1fe4
-
+.checkButtons:
+  ld hl, wGamepadState
   ld a, [hl]
   and $f0
-  jr z, jr_000_1fe4
+  jr z, .noButtonsPressed
 
   ld hl, $c2b5
   inc [hl]
   jr jr_000_1fe9
 
-jr_000_1fe4:
+.noButtonsPressed:
   ld hl, $c2b5
   ld [hl], $00
 
@@ -6390,16 +6372,16 @@ jr_000_1fe9:
   ld a, $18
   ld hl, $c2b5
   sub [hl]
-  jr nc, jr_000_1ffa
+  jr nc, .returnInput
 
   ld a, [hl]
   add $fa
   ld [hl], a
-  ld hl, $c2b0
+  ld hl, wGamepadState
   ld [hl], $00
 
-jr_000_1ffa:
-  ld hl, $c2b0
+.returnInput:
+  ld hl, wGamepadState
   ld e, [hl]
   ret
 
@@ -6765,7 +6747,7 @@ Call_000_2193:
   ld a, $14
   sub c
   ld c, a
-  ld a, $00
+  xor a
   sbc b
   ld b, a
   sra b
@@ -7008,7 +6990,7 @@ jr_000_22e0:
   ld b, a
   sla c
   rl b
-  ld hl, $c000
+  ld hl, _RAM
   add hl, bc
   ld c, l
   ld b, h
@@ -7066,7 +7048,7 @@ jr_000_22e0:
   ld b, a
   sla c
   rl b
-  ld hl, $c000
+  ld hl, _RAM
   add hl, bc
   ld c, l
   ld b, h
@@ -10221,7 +10203,7 @@ Jump_000_32a9:
   jr jr_000_32d3
 
 jr_000_32d1:
-  ld a, $00
+  xor a
 
 jr_000_32d3:
   ld hl, $c2f1
@@ -12071,7 +12053,7 @@ Jump_000_3b28:
   jr jr_000_3bbc
 
 jr_000_3bba:
-  ld a, $00
+  xor a
 
 jr_000_3bbc:
   ld [bc], a

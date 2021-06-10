@@ -8581,7 +8581,7 @@ jr_001_6978:
 
 Jump_001_697e:
     call Call_000_09cc
-    call Call_000_1f88
+    call GetButtonDown
     ld hl, sp+$02
     ld [hl], e
     ld hl, sp+$0d
