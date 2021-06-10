@@ -519,7 +519,9 @@ jr_000_01cc:
   rst $38
   rst $38
   nop
-  ld bc, $0000
+  DB 1
+CartSwitch:: DB 0
+  DB 0
   rst $38
   rst $38
   rst $38
@@ -613,7 +615,7 @@ jr_000_01cc:
   dec hl
   cp h
   dec hl
-  jr jr_000_028c
+  jr CheckCartSwitch
 
   ld e, d
   dec hl
@@ -649,13 +651,14 @@ EntryPoint:
   ld sp, $dfff
   ld a, $a5
   ld [$bd0a], a
-  ld a, [$01f2]
+  ld a, [CartSwitch]
 
-jr_000_028c:
+CheckCartSwitch:
   cp $00
-  jr nz, jr_000_02bc
+  jr nz, CartSwitchPressed
 
-  ld sp, $dfff
+InitializeCart
+  ld sp, $dfff;end of ram
   ld a, $00
   ldh [rSVBK], a
   ldh [rVBK], a
@@ -670,21 +673,21 @@ Call_000_02a9:
   ld a, $04
   ld [$bd06], a
   ld a, $00
-  ld_long $ffff, a
+  ld_long rIE, a;disable interrupts
   ld [$bd01], a
   ld a, $04
   ld [$bd08], a
   ret
 
 
-jr_000_02bc:
+CartSwitchPressed:
   ld a, $00
-  ld [$01f2], a
+  ld [CartSwitch], a
   ld a, $10
   ld [$bd06], a
 
-jr_000_02c6:
-  jr jr_000_02c6
+LoopForever:
+  jr LoopForever
 
 Call_000_02c8:
   ld hl, sp+$02
@@ -2189,7 +2192,7 @@ jr_000_0a66:
 
   ret
 
-
+DataAtA7D::
   ld c, a
   ld d, e
   jr nz, jr_000_0aea
@@ -2599,7 +2602,7 @@ Jump_000_0cc2:
   sub $02
   jr nz, jr_000_0cd3
 
-  ld hl, $01f2
+  ld hl, CartSwitch
   ld [hl], $01
   call EntryPoint
 
@@ -2610,7 +2613,7 @@ jr_000_0cd3:
   ld sp, hl
   ret
 
-
+SomeData::
   ld c, c
   ld l, [hl]
   jr nz, jr_000_0d27
@@ -2732,7 +2735,7 @@ Call_000_0d43:
   push de
   call Call_000_0a02
   add sp, $05
-  call Call_000_1f83
+  call PutC2B2inE
   ld a, e
   ld de, $c001
   ld [de], a
@@ -6291,7 +6294,7 @@ UIColors::
   nop
   nop
 
-Call_000_1f83:
+PutC2B2inE:
   ld hl, $c2b2
   ld e, [hl]
   ret
