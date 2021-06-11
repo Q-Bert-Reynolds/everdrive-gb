@@ -87,7 +87,17 @@ SerialInterrupt::
   reti
 
 DetectKeyboard::
-  call InitializeOS;oh lord
+  ld a, [kb_type]
+  cp a, KB_TYPE_PS2
+  ret z
+  cp a, KB_TYPE_IGKB
+  ret z;no need to detect twice
+  
+  ei
+  ld a, [rIE]
+  or a, IEF_SERIAL
+  ld [rIE], a
+
   ld a, KB_TYPE_PS2
   ld [kb_type], a;assume PS2 keyboard connected
   xor a

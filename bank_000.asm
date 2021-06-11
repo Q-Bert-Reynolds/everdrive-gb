@@ -1519,34 +1519,40 @@ ClearC144toC2AB::
     jr nz, .loop
   ret
 
-UpdateInput:;puts button state in e
+UpdateInput::;puts button state in e
+  call DetectKeyboard 
+
+  ei
+REPT 6;to keep InitializeOS at $0a43
+  nop
+ENDR
   ld a, P1F_GET_DPAD
-  ldh [rP1], a
+  ld hl, rP1
+  ld [hl], a
 REPT 4;multiple cycles to avoid button bounce
-  ldh a, [rP1];load dPad
+  ld a, [hl];load dPad
 ENDR
   and a, $F
   swap a
   ld e, a
   ld a, P1F_GET_BTN
-  ldh [rP1], a
+  ld [hl], a
 REPT 4
-  ldh a, [rP1];load buttons
+  ld a, [hl];load buttons
 ENDR
   and a, $F
   or e
   cpl
   ld e, a
   ld a, P1F_GET_NONE
-  ldh [rP1], a
+  ld [hl], a
   
   ld hl, wGamepadState
   ld [hl], e;store button state
-  nop 
-  nop;to keep InitializeOS at $0a43
+
   ret
 
-InitializeOS::
+InitializeOS::;$0a43
   ld a, $01
   push af
   inc sp
