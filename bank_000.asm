@@ -1,531 +1,69 @@
-; Disassembly of "GBCOS.bin"
-; This file was created with:
-; mgbdis v1.5 - Game Boy ROM disassembler by Matt Currie and contributors.
-; https://github.com/mattcurrie/mgbdis
-
-SECTION "ROM Bank $000", ROM0[$0]
-
-RST_00::
+SECTION "RST $00", ROM0[$0]
   jp EntryPoint
 
-
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-RST_08::
+SECTION "RST $08", ROM0[$08]
   reti
 
-
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-RST_10::
+SECTION "RST $10", ROM0[$10]
   reti
 
-
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-RST_18::
+SECTION "RST $18", ROM0[$18]
   reti
 
-
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-RST_20::
+SECTION "RST $20", ROM0[$20]
   reti
 
-
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-RST_28::
+SECTION "RST $28", ROM0[$28]
   reti
 
-
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-RST_30::
+SECTION "RST $30", ROM0[$30]
   reti
 
-
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-RST_38::
+SECTION "RST $38", ROM0[$38]
   reti
 
-
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-VBlankInterrupt::
+SECTION "VBlank", ROM0[$0040]
   jp VBLInterrupt
 
-
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-LCDCInterrupt::
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-TimerOverflowInterrupt::
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-SerialTransferCompleteInterrupt::
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-JoypadTransitionInterrupt::
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
+SECTION "LCDC", ROM0[$0048]
   reti
 
+SECTION "TimerOverflow", ROM0[$0050]
+  reti
 
-  rst $38
+SECTION "Serial", ROM0[$0058]
+  reti
 
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
+SECTION "p1thru4", ROM0[$0060]
+  reti
 
-Boot::
+SECTION "Header", ROM0[$100]
+  nop
   jp EntryPoint
 
+  NINTENDO_LOGO
+  DB "GBXOS",0,0,0,0,0,0
+  DB "KRKZ"
+  DB CART_COMPATIBLE_DMG_GBC
+  DB 0,0
+  DB CART_INDICATOR_SGB
+  DB CART_ROM;cart size and type info don't reflect reality
+  DB CART_ROM_32KB
+  DB CART_SRAM_NONE
+  DB CART_DEST_NON_JAPANESE
+  DB $33
+  DB 0
+  DB 0;complement check and checksum are overwritten by RGBFIX
+  DW 0
 
-  rst $38
-
-HeaderLogo::
-  db $ce, $ed, $66, $66, $cc, $0d, $00, $0b, $03, $73, $00, $83, $00, $0c, $00, $0d
-  db $00, $08, $11, $1f, $88, $89, $00, $0e, $dc, $cc, $6e, $e6, $dd, $dd, $d9, $99
-  db $bb, $bb, $67, $63, $6e, $0e, $ec, $cc, $dd, $dc, $99, $9f, $bb, $b9, $33, $3e
-
-HeaderTitle::
-  db "GBXOS", $ff, $ff, $ff, $ff, $ff, $ff
-
-HeaderManufacturerCode::
-  db "KRKZ"
-
-HeaderCGBFlag::
-  db $80
-
-HeaderNewLicenseeCode::
-  db $ff, $ff
-
-HeaderSGBFlag::
-  db $03
-
-HeaderCartridgeType::
-  db $00
-
-HeaderROMSize::
-  db $00
-
-HeaderRAMSize::
-  db $00
-
-HeaderDestinationCode::
-  db $01
-
-HeaderOldLicenseeCode::
-  db $33
-
-HeaderMaskROMVersion::
-  db $00
-
-HeaderComplementCheck::
-  db $73
-
-HeaderGlobalChecksum::
-  db $e1, $7e
-
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-jr_000_01b5:
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-jr_000_01cc:
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-
+SECTION "Bank 0 Data", ROM0[$01f0]
   DB $00
   DB $01
-CartSwitch:: 
-  DB $00, $00, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
+CartSwitch:: DB 0
+  DB $00
+  DB $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
 
-ATileProbably::
+ATable::
   DB $70, $17, $45, $19, $93, $12, $6f, $65, $d6, $65, $41, $10, $aa, $1a, $ae, $1a
   DB $b2, $1a, $8f, $04, $ba, $04, $a8, $04, $b1, $04, $ef, $09, $02, $0a, $88, $1f
   DB $9b, $1f, $6d, $21, $93, $21, $e0, $21, $3e, $22, $ff, $1f, $c2, $20, $34, $20
@@ -535,6 +73,7 @@ ATileProbably::
   DB $5a, $2b, $e6, $67, $f2, $6a, $0f, $6b, $de, $6b, $15, $6c, $32, $6c, $e8, $6a
   DB $ba, $58, $41, $59, $66, $5c, $1e, $5b, $bf, $5a, $fb, $5a, $7f, $5b, $09, $5c
 
+SECTION "Bank 0 Code", ROM0
 EntryPoint:
   di
   ld sp, $dfff
@@ -567,7 +106,6 @@ Call_000_02a9:
   ld a, $04
   ld [$bd08], a
   ret
-
 
 CartSwitchPressed:
   ld a, $00
@@ -915,13 +453,13 @@ Call_000_0453:
   ld a, $00
   ld [$bd09], a
   ld a, $00
-  ld [$0000], a
-  ld [$3000], a
-  ld [$4000], a
+  ld [rRAMG], a
+  ld [rROMB1], a
+  ld [rRAMB], a
   ld [$6000], a
   ld a, $01
   ld [$2100], a
-  ld [$2000], a
+  ld [rROMB0], a
   ld a, e
   ld [$bd07], a
 
@@ -1110,15 +648,14 @@ jr_000_0538:
   ret
 
 
-Call_000_053e:
+SetCPUSpeedSlowIfSlow::;this seems unnecessary
   ldh a, [rKEY1]
   sla a
   jr nc, SetCPUSpeedSlow
 
   ret
 
-
-Call_000_0545:
+SetCPUSpeedSlowIfFast:
   ldh a, [rKEY1]
   sla a
   jr c, SetCPUSpeedSlow
@@ -1408,7 +945,7 @@ jr_000_0677:
   ld [$bd06], a
   ld [$0620], sp
   ld sp, $066e
-  call Call_000_0914
+  call StoreScreenSettings
   and $00
   ldh [rLCDC], a
   ldh [rVBK], a
@@ -1463,7 +1000,7 @@ Call_000_06e3:
   ld de, _RAM
   ld c, $10
   call CopyDEtoEndOfSRAM
-  call Call_000_092e
+  call RestoreScreenSettings
   ld de, _OAMRAM
   ld c, $01
   call CopyDEtoEndOfSRAM
@@ -1617,10 +1154,10 @@ Call_000_07ce:
   call Call_000_0948
   call Call_000_086c
   call Call_000_0844
-  call Call_000_0914
+  call StoreScreenSettings
   call Call_000_0948
   call Call_000_08cb
-  call Call_000_092e
+  call RestoreScreenSettings
   call Call_000_0814
   jp LoopForever2
 
@@ -1634,17 +1171,14 @@ jr_000_07f7:
   pop de
   pop bc
   ldh a, [rIF]
-  and $fe
+  and $fe;clear VBL flag
   ldh [rIF], a
-
-jr_000_080a:
-  ldh a, [rIF]
-  and $01
-  jr z, jr_000_080a
-
+.waitVBL:
+    ldh a, [rIF]
+    and $01;is VBL flag set
+    jr z, .waitVBL
   pop af
-  jp VBlankInterrupt
-
+  jp VBLInterrupt
 
 Call_000_0814:
   ld a, $40
@@ -1658,16 +1192,16 @@ Call_000_0814:
   ld sp, hl
   ld hl, $be06
   ld a, [hl+]
-  ld [$0000], a
+  ld [rRAMG], a
   ld a, [hl+]
   ld [$6000], a
   srl a
-  ld [$3000], a
+  ld [rROMB1], a
   ld a, [hl+]
-  ld [$4000], a
+  ld [rRAMB], a
   ld a, [hl+]
   ld [$2100], a
-  ld [$2000], a
+  ld [rROMB0], a
   jr jr_000_07f7
 
 Call_000_0844:
@@ -1732,15 +1266,15 @@ Call_000_08b0:
   ld [$bd02], a
   ld a, [$bf4d]
   and $80
-  jr nz, jr_000_08c4
+  jr nz, .isDMG
 
-  call Call_000_0545
-  jr jr_000_08c7
+  call SetCPUSpeedSlowIfFast
+  jr .restoreInterrupts
 
-jr_000_08c4:
-  call Call_000_053e
+.isDMG:
+  call SetCPUSpeedSlowIfSlow
 
-jr_000_08c7:
+.restoreInterrupts:
   ld a, b
   ldh [rIE], a
   ret
@@ -1794,30 +1328,30 @@ jr_000_0903:
   ret
 
 
-Call_000_0914:
+StoreScreenSettings:
   ldh a, [rLCDC]
-  ld [$0622], a
+  ld [edLCDC], a
   ldh a, [rVBK]
-  ld [$0624], a
+  ld [edVBK], a
   ldh a, [rSVBK]
-  ld [$0623], a
+  ld [edSVBK], a
   ldh a, [rBCPS]
-  ld [$0625], a
+  ld [edBCPS], a
   ldh a, [rOCPS]
-  ld [$0626], a
+  ld [edOCPS], a
   ret
 
 
-Call_000_092e:
-  ld a, [$0622]
+RestoreScreenSettings:
+  ld a, [edLCDC]
   ldh [rLCDC], a
-  ld a, [$0624]
+  ld a, [edVBK]
   ldh [rVBK], a
-  ld a, [$0623]
+  ld a, [edSVBK]
   ldh [rSVBK], a
-  ld a, [$0625]
+  ld a, [edBCPS]
   ldh [rBCPS], a
-  ld a, [$0626]
+  ld a, [edOCPS]
   ldh [rOCPS], a
   ret
 
@@ -1925,48 +1459,44 @@ jr_000_09b6:
 
 LoopForever2::
   jr LoopForever2
-  nop
 
-WaitVBL:;maybe?
+WaitVBL:
+  nop
   ld a, $00;clear interrupt flags
   ldh [rIF], a
-
 .waitVBL:
-  ldh a, [rIF]
-  and $01
-  jr z, .waitVBL
-
+    ldh a, [rIF]
+    and $01
+    jr z, .waitVBL
   ret
 
 
-Call_000_09cc:
-Jump_000_09cc:
+DrawToScreen0:;copies data from _SRAM+$144 to _SCRN0
   ld bc, _SCRN0
   ld hl, $c144
-  ld d, $14
+  ld d, 20;screen width in tiles
 
-jr_000_09d4:
-  ldh a, [rSTAT]
-  and $02
-  jr nz, jr_000_09d4
+.copyLoop:
+    ldh a, [rSTAT]
+    and STATF_BUSY
+    jr nz, .copyLoop
 
-  ld a, [hl+]
-  ld [bc], a
-  inc c
-  dec d
-  jr nz, jr_000_09d4
+    ld a, [hl+]
+    ld [bc], a
+    inc c
+    dec d
+    jr nz, .copyLoop
 
-  ld d, $14
-  ld a, c
-  add $0c
-  ld c, a
-  jr nz, jr_000_09d4
+    ld d, 20
+    ld a, c
+    add $0c
+    ld c, a
+    jr nz, .copyLoop
 
-  inc b
-  ld a, b
-  cp $9b
-  jr nz, jr_000_09d4
-
+    inc b
+    ld a, b
+    cp $9b
+    jr nz, .copyLoop
   ret
 
 
@@ -1992,7 +1522,7 @@ jr_000_09f5:
   ret
 
 
-LoadTiles::;pretty sure this is where it happens
+LoadTiles::;pretty sure this is where it happens, not sure how though
   pop hl
   pop hl
   pop bc
@@ -2051,7 +1581,7 @@ InitializeOS:
   push de
   call Call_000_216d
   add sp, $02
-  call Call_000_09cc
+  call DrawToScreen0
   call Call_000_0d43
   ld a, e
   or a
@@ -2261,7 +1791,7 @@ jr_000_0b5e:
   push de
   call Call_000_2193
   add sp, $02
-  call Call_000_09cc
+  call DrawToScreen0
   ld hl, $0216
   add hl, sp
   ld a, [hl]
@@ -2528,11 +2058,9 @@ Call_000_0d43:
   ld [hl], $00
   ld a, [$c001]
   sub $03
-
-jr_000_0d75:
   jr nz, jr_000_0d7a
 
-  call Call_000_053e
+  call SetCPUSpeedSlowIfSlow
 
 jr_000_0d7a:
   call Call_000_262c
@@ -3656,7 +3184,7 @@ jr_000_1366:
   inc hl
   ld [hl+], a
   ld [hl], e
-  ld hl, HeaderTitle
+  ld hl, $0134;was HeaderTitle
   add hl, bc
   ld a, l
   ld d, h
@@ -3681,7 +3209,7 @@ jr_000_1366:
   call Call_000_09ef
   add sp, $06
   pop bc
-  ld hl, HeaderCGBFlag
+  ld hl, $0143;was HeaderCGBFlag
   add hl, bc
   ld c, l
   ld b, h
@@ -4406,7 +3934,7 @@ Call_000_1747:
   push de
   call Call_000_2193
   add sp, $02
-  jp Jump_000_09cc
+  jp DrawToScreen0
 
 
   ld c, h
@@ -5012,7 +4540,7 @@ jr_000_1a66:
 jr_000_1a73:
   call Bank1Function67C1
   call Call_000_214d
-  call Call_000_09cc
+  call DrawToScreen0
   call WaitVBL
   ld a, [$c030]
   or a
@@ -5029,7 +4557,7 @@ jr_000_1a8d:
   sub $03
   jr nz, jr_000_1a97
 
-  call Call_000_0545
+  call SetCPUSpeedSlowIfFast
 
 jr_000_1a97:
   ld hl,rAUDENA
@@ -5197,7 +4725,7 @@ Jump_000_1aa7:
   push de
   call Call_000_2193
   add sp, $02
-  call Call_000_09cc
+  call DrawToScreen0
   ld hl, sp+$18
   ld [hl], $00
   ld hl, sp+$14
@@ -5300,7 +4828,7 @@ jr_000_1bfc:
   ld l, a
   push hl
   push de
-  call $6d67
+  call Bank1Function6D67
   add sp, $04
   ld c, e
   ld b, d
@@ -5817,7 +5345,7 @@ SetGBCPalette::
   ld b, $00
   sla c
   rl b
-  ld hl, $1f77
+  ld hl, UIColors
   add hl, bc
   ld c, l
   ld b, h
@@ -5940,8 +5468,8 @@ jr_000_1f35:
   jp c, Jump_000_1ef6
 
   call Call_000_214d
-  call $6af2
-  call Call_000_09cc
+  call Bank1Function6AF2
+  call DrawToScreen0
   ld hl, rLCDC
   ld [hl], $91
   ld hl, $c2b2
@@ -6029,7 +5557,7 @@ jr_000_1fae:
   call UpdateInput
   ld hl, wGamepadState
   ld [hl], e;store button state
-  ld hl, $09c0
+  ld hl, WaitVBL
   ld a, [hl]
   or a
   jr z, .checkButtons
@@ -6560,7 +6088,7 @@ Call_000_223e:
   ld h, [hl]
   ld l, a
   push hl
-  call $6d53
+  call Bank1Function6D53
   add sp, $04
   ret
 
@@ -9200,7 +8728,7 @@ Call_000_2ec6:
   push hl
   ld hl, $0000
   push hl
-  call $30bd
+  call Call_000_30bd
   add sp, $04
   ld a, e
   or a
@@ -9217,7 +8745,7 @@ Call_000_2ec6:
   ld hl, $c2c6
   push hl
   push de
-  call $4323
+  call Bank1Function4323
   add sp, $04
   ld hl, $c2c8
   ld a, [hl+]
@@ -9229,7 +8757,7 @@ Call_000_2ec6:
   ld h, [hl]
   ld l, a
   push hl
-  call $30bd
+  call Call_000_30bd
   add sp, $04
   ld a, e
   or a
@@ -9261,7 +8789,7 @@ jr_000_2f6d:
   ld hl, $c2d2
   push hl
   push de
-  call $4323
+  call Bank1Function4323
   add sp, $04
   push af
   ld hl, $c2d2
@@ -9480,16 +9008,11 @@ Jump_000_30ad:
   ret
 
 
-  ld bc, $0503
-  rlca
-  add hl, bc
-  ld c, $10
-  ld [de], a
-  inc d
-  ld d, $18
-  inc e
-  ld e, $f8
-  ld [bc], a
+TableAt30B0::
+  DB $01, $03, $05, $07, $09, $0e, $10, $12, $14, $16, $18, $1c, $1e
+
+Call_000_30bd:
+  ld hl, sp+$02
   ld a, [hl]
   ld hl, $c2ca
   sub [hl]
@@ -9822,7 +9345,7 @@ jr_000_323c:
   ld h, [hl]
   ld l, a
   push hl
-  call $30bd
+  call Call_000_30bd
   add sp, $04
   ld a, e
   or a
@@ -9979,7 +9502,7 @@ jr_000_3312:
   ld h, [hl]
   ld l, a
   push hl
-  call $30bd
+  call Call_000_30bd
   add sp, $04
   ld a, e
   or a
@@ -10616,7 +10139,7 @@ jr_000_361c:
   ld l, a
   push hl
   push bc
-  call $4323
+  call Bank1Function4323
   add sp, $04
   ld e, $00
 
@@ -10830,7 +10353,7 @@ Jump_000_3743:
   ld h, [hl]
   ld l, a
   push hl
-  call $30bd
+  call Call_000_30bd
   add sp, $04
   ld a, e
   or a
@@ -11432,7 +10955,7 @@ jr_000_39b5:
   ld h, [hl]
   ld l, a
   push hl
-  call $4323
+  call Bank1Function4323
   add sp, $04
   ld e, $00
 
@@ -11582,7 +11105,7 @@ jr_000_3ac9:
   ld h, [hl]
   ld l, a
   push hl
-  call $46df
+  call Bank1Function46DF
   add sp, $04
   ld a, e
   or a
