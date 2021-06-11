@@ -522,8 +522,8 @@ jr_000_01cc:
 
   DB $00
   DB $01
-CartSwitch:: DB $00
-  DB $00, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
+CartSwitch:: 
+  DB $00, $00, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
 
 ATileProbably::
   DB $70, $17, $45, $19, $93, $12, $6f, $65, $d6, $65, $41, $10, $aa, $1a, $ae, $1a
@@ -1681,7 +1681,8 @@ Call_000_0844:
   call CopyEndOfSRAMtoHL
   ld hl, _OAMRAM
   ld de, $be00
-  ld hl, $ff80
+  ;call Copy256FromDEtoHL;this call was missing, but I'm pretty sure it was supposed to be here
+  ld hl, _HRAM
   ld de, $bf80
   call Copy256FromDEtoHL
   call CopySRAMtoIO
@@ -1991,25 +1992,22 @@ jr_000_09f5:
   ret
 
 
-Call_000_0a02:
+LoadTiles::;pretty sure this is where it happens
   pop hl
   pop hl
   pop bc
   add sp, -$01
   pop de
   add sp, -$07
-
-jr_000_0a0a:
-  ld a, c
-  ld [hl+], a
-  dec de
-  ld a, $00
-  cp e
-  jr nz, jr_000_0a0a
-
-  cp d
-  jr nz, jr_000_0a0a
-
+.loadTilesLoop:
+    ld a, c
+    ld [hl+], a
+    dec de
+    ld a, $00
+    cp e
+    jr nz, .loadTilesLoop
+    cp d
+    jr nz, .loadTilesLoop
   ret
 
 UpdateInput:;puts button state in e
@@ -2517,7 +2515,7 @@ Call_000_0d43:
   push af
   inc sp
   push de
-  call Call_000_0a02
+  call LoadTiles
   add sp, $05
   call PutC2B2inE
   ld a, e
@@ -2931,7 +2929,7 @@ jr_000_0f9c:
   push af
   inc sp
   push de
-  call Call_000_0a02
+  call LoadTiles
   add sp, $05
   ld hl, $c02b
   ld [hl], $34
@@ -5723,7 +5721,7 @@ jr_000_1e06:
   ld [hl], $00
   inc hl
   ld [hl], $8a
-  ld hl, $ff40
+  ld hl, rLCDC
   ld [hl], $00
 
 jr_000_1e18:
@@ -5733,16 +5731,16 @@ jr_000_1e18:
 
 jr_000_1e20:
   ld [hl], $01
-  ld hl, $ff4f
+  ld hl, rVBK
   ld [hl], $00
-  ld de, $ff4f
+  ld de, rVBK
   ld a, [de]
   rrca
   jr c, jr_000_1e46
 
-  ld hl, $ff4f
+  ld hl, rVBK
   ld [hl], $01
-  ld de, $ff4f
+  ld de, rVBK
   ld a, [de]
   and $01
   dec a
@@ -5752,7 +5750,7 @@ jr_000_1e20:
   ld [hl], $03
 
 jr_000_1e41:
-  ld hl, $ff4f
+  ld hl, rVBK
   ld [hl], $00
 
 jr_000_1e46:
@@ -5761,13 +5759,13 @@ jr_000_1e46:
   or a
   jr z, jr_000_1e53
 
-  ld hl, $ff26
-  ld [hl], $00
+  ld hl, rAUDENA
+  ld [hl], $00;disable audio
   jr jr_000_1e58
 
 jr_000_1e53:
-  ld hl, $ff25
-  ld [hl], $00
+  ld hl, rAUDTERM
+  ld [hl], $00;no sound output
 
 jr_000_1e58:
   ld hl, rSTAT
@@ -5791,7 +5789,7 @@ jr_000_1e58:
   sub $03
   jp nz, Jump_000_1ee9
 
-  ld hl, $ff4f
+  ld hl, rVBK
   ld [hl], $01
   ld hl, $2000
   push hl
@@ -5800,9 +5798,9 @@ jr_000_1e58:
   inc sp
   ld h, $80
   push hl
-  call Call_000_0a02
+  call LoadTiles
   add sp, $05
-  ld hl, $ff4f
+  ld hl, rVBK
   ld [hl], $00
   ld l, $68
   ld [hl], $80
@@ -5811,7 +5809,7 @@ jr_000_1e58:
   inc hl
   ld [hl], $00
 
-Jump_000_1ea6:
+SetGBCPalette::
   ld hl, sp+$02
   ld a, [hl]
   and $03
@@ -5834,7 +5832,7 @@ Jump_000_1ea6:
   ld d, [hl]
   ld e, $00
   ld a, d
-  ld de, $ff69
+  ld de, rBCPD
   ld [de], a
   ld e, c
   ld d, b
@@ -5844,7 +5842,7 @@ Jump_000_1ea6:
   ld a, [de]
   ld c, a
   ld d, $00
-  ld hl, $ff69
+  ld hl, rBCPD
   ld [hl], c
   ld hl, sp+$02
   inc [hl]
@@ -5860,7 +5858,7 @@ jr_000_1edd:
   inc hl
   ld a, [hl]
   sbc $00
-  jp c, Jump_000_1ea6
+  jp c, SetGBCPalette
 
 Jump_000_1ee9:
   ld hl, sp+$00
@@ -5944,7 +5942,7 @@ jr_000_1f35:
   call Call_000_214d
   call $6af2
   call Call_000_09cc
-  ld hl, $ff40
+  ld hl, rLCDC
   ld [hl], $91
   ld hl, $c2b2
   ld a, [hl]
@@ -6380,7 +6378,7 @@ Call_000_214d:
   push af
   inc sp
   push de
-  call Call_000_0a02
+  call LoadTiles
   add sp, $05
   ret
 
@@ -6659,7 +6657,7 @@ Jump_000_2285:
   push bc
   inc sp
   push de
-  call Call_000_0a02
+  call LoadTiles
   add sp, $05
   pop bc
   ld hl, $c2ae
@@ -7429,7 +7427,7 @@ Jump_000_26bf:
   push bc
   ld hl, $0000
   push hl
-  ld hl, $ffff
+  ld hl, rIE
   push hl
   ld a, $77
   push af

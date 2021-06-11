@@ -1,4 +1,13 @@
+IMAGE_DEPS = gfx/font.1bpp
+
 all: GBCOS.bin
+
+	cp GBCOS.bin GBCOS.gb
+ifeq ($(OS), Windows_NT)
+	start "GBCOS.gb"
+else
+	open GBCOS.gb
+endif
 
 %.2bpp: %.png
 	rgbgfx -o $@ $<
@@ -6,7 +15,7 @@ all: GBCOS.bin
 %.1bpp: %.png
 	rgbgfx -d 1 -o $@ $<
 
-GBCOS.o: GBCOS.asm bank_*.asm
+GBCOS.o: GBCOS.asm bank_*.asm $(IMAGE_DEPS)
 	rgbasm  -o GBCOS.o GBCOS.asm
 
 GBCOS.bin: GBCOS.o
