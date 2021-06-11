@@ -1522,22 +1522,22 @@ jr_000_09f5:
   ret
 
 
-LoadTiles::;pretty sure this is where it happens, not sure how though
+ClearC144toC2AB::
   pop hl
   pop hl
   pop bc
   add sp, -$01
   pop de
   add sp, -$07
-.loadTilesLoop:
+.loop:
     ld a, c
     ld [hl+], a
     dec de
     ld a, $00
     cp e
-    jr nz, .loadTilesLoop
+    jr nz, .loop
     cp d
-    jr nz, .loadTilesLoop
+    jr nz, .loop
   ret
 
 UpdateInput:;puts button state in e
@@ -1579,7 +1579,7 @@ InitializeOS:
   inc sp
   ld de, OSInitText
   push de
-  call Call_000_216d
+  call LoadOSInitText
   add sp, $02
   call DrawToScreen0
   call Call_000_0d43
@@ -1825,7 +1825,7 @@ Jump_000_0ba6:
   ld e, [hl]
   inc hl
   ld d, [hl]
-  ld hl, $3e40
+  ld hl, Address3E40
   add hl, de
   ld c, l
   ld b, h
@@ -1973,7 +1973,7 @@ Jump_000_0c61:
   ld e, [hl]
   inc hl
   ld d, [hl]
-  ld hl, $3e40
+  ld hl, Address3E40
   add hl, de
   ld c, l
   ld b, h
@@ -2045,7 +2045,7 @@ Call_000_0d43:
   push af
   inc sp
   push de
-  call LoadTiles
+  call ClearC144toC2AB
   add sp, $05
   call PutC2B2inE
   ld a, e
@@ -2449,7 +2449,6 @@ GBSysSnapText::   DB "/GBCSYS/SNAP", 0
 GBSysText::       DB "/GBCSYS     ", 0
 
 Call_000_0f9c:
-jr_000_0f9c:
   ld de, $c02b
   ld hl, $0109
   push hl
@@ -2457,7 +2456,7 @@ jr_000_0f9c:
   push af
   inc sp
   push de
-  call LoadTiles
+  call ClearC144toC2AB
   add sp, $05
   ld hl, $c02b
   ld [hl], $34
@@ -2481,7 +2480,7 @@ jr_000_0f9c:
 
 Call_000_0fcb:
   add sp, -$02
-  ld de, $102d
+  ld de, GBSysRegistryBinText+2;$102D
   ld hl, $0109
   push hl
   ld hl, $c02b
@@ -2528,7 +2527,6 @@ Call_000_0fcb:
   ld a, [hl]
   sub b
   jr nz, jr_000_101c
-
   inc hl
   ld a, [hl]
   sub c
@@ -2536,7 +2534,7 @@ Call_000_0fcb:
 
 jr_000_101c:
   ld e, $35
-  jr jr_000_102a
+  jr Jump_000_102a
 
 jr_000_1020:
   ld bc, $c02e
@@ -2546,7 +2544,6 @@ jr_000_1020:
   ld e, $00
 
 Jump_000_102a:
-jr_000_102a:
   add sp, $02
   ret
 
@@ -2572,7 +2569,7 @@ Call_000_1041:
   ld hl, sp+$00
   ld c, l
   ld b, h
-  ld de, $1098
+  ld de, GBSysRegistryBinText2+2;$1098
   ld hl, $0001
   push hl
   push bc
@@ -3500,7 +3497,7 @@ jr_000_1521:
   sub $05
   jr nz, jr_000_154c
 
-  ld de, $1742
+  ld de, Bank0Address1742
   ld a, $04
   push af
   inc sp
@@ -3912,6 +3909,7 @@ Jump_000_1738:
   ret
 
 
+Bank0Address1742::
   ld c, h
   ld d, e
   ld b, h
@@ -3930,13 +3928,14 @@ Call_000_1747:
   inc sp
   call Call_000_2268
   inc sp
-  ld de, $1765
+  ld de, Bank0Address1765
   push de
   call Call_000_2193
   add sp, $02
   jp DrawToScreen0
 
 
+Bank0Address1765::
   ld c, h
   ld l, a
   ld h, c
@@ -4280,6 +4279,7 @@ jr_000_190b:
   ld hl, sp+$01
   ld c, l
   ld b, h
+Bank0Address191D::
   ld hl, $0001
   add hl, bc
   ld a, l
@@ -4721,7 +4721,7 @@ Jump_000_1aa7:
   push hl
   call Call_000_2209
   add sp, $02
-  ld de, $1dc0
+  ld de, Bank0Address1DC0
   push de
   call Call_000_2193
   add sp, $02
@@ -5135,7 +5135,7 @@ jr_000_1d87:
   daa
   ld l, a
   ld l, b
-  ld hl, $5300
+  ld hl, Bank1Address5300
   ld [hl], l
   ld [hl], b
   ld [hl], b
@@ -5179,6 +5179,7 @@ jr_000_1d87:
   ld h, l
   ld [hl], d
   nop
+Bank0Address1DC0::
   ld d, e
   ld h, l
   ld h, c
@@ -5326,7 +5327,7 @@ jr_000_1e58:
   inc sp
   ld h, $80
   push hl
-  call LoadTiles
+  call ClearC144toC2AB
   add sp, $05
   ld hl, rVBK
   ld [hl], $00
@@ -5540,20 +5541,20 @@ GetButtonDown::;returns buttons pressed in e
 GetInput::;returns buttons in e
   ld hl, $c2b3
   inc [hl]
-  jr nz, .jr_000_1fa3
+  jr nz, .checkDPad
 
   inc hl
   inc [hl]
 
-.jr_000_1fa3:
+.checkDPad:
   ld hl, $c2b5
   ld a, [hl]
   sub $16;is DPad pressed?
-  jr nc, jr_000_1fae
+  jr nc, .updateGamepad
 
   call WaitVBL
 
-jr_000_1fae:
+.updateGamepad:
   call UpdateInput
   ld hl, wGamepadState
   ld [hl], e;store button state
@@ -5616,7 +5617,7 @@ jr_000_1fe9:
   ret
 
 
-Call_000_1fff:
+LoadText:
   add sp, -$02
   ld hl, sp+$05
   dec hl
@@ -5624,40 +5625,40 @@ Call_000_1fff:
   inc hl
   ld b, [hl]
 
-jr_000_2007:
-  ld a, [bc]
-  ld d, a
-  or a
-  jr z, jr_000_2031
+.loadTextLoop:
+    ld a, [bc]
+    ld d, a
+    or a
+    jr z, .done
 
-  push hl
-  ld hl, $c2ac
-  ld a, [hl]
-  ld hl, sp+$02
-  ld [hl], a
-  pop hl
-  push hl
-  ld hl, $c2ad
-  ld a, [hl]
-  ld hl, sp+$03
-  ld [hl], a
-  pop hl
-  ld a, d
-  inc bc
-  ld hl, $c2b1
-  or [hl]
-  pop de
-  push de
-  ld [de], a
-  ld hl, $c2ac
-  inc [hl]
-  jr nz, jr_000_2007
+    push hl
+    ld hl, $c2ac
+    ld a, [hl]
+    ld hl, sp+$02
+    ld [hl], a
+    pop hl
+    push hl
+    ld hl, $c2ad
+    ld a, [hl]
+    ld hl, sp+$03
+    ld [hl], a
+    pop hl
+    ld a, d
+    inc bc
+    ld hl, $c2b1
+    or [hl]
+    pop de
+    push de
+    ld [de], a
+    ld hl, $c2ac
+    inc [hl]
+    jr nz, .loadTextLoop
 
-  inc hl
-  inc [hl]
-  jr jr_000_2007
+    inc hl
+    inc [hl]
+    jr .loadTextLoop
 
-jr_000_2031:
+.done:
   add sp, $02
   ret
 
@@ -5884,7 +5885,7 @@ Jump_000_213f:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_1fff
+  call LoadText
   add sp, $02
   add sp, $0d
   ret
@@ -5906,12 +5907,12 @@ Call_000_214d:
   push af
   inc sp
   push de
-  call LoadTiles
+  call ClearC144toC2AB
   add sp, $05
   ret
 
 
-Call_000_216d:
+LoadOSInitText:
   ld hl, $c2ae
   ld a, [hl]
   add $14
@@ -5936,7 +5937,7 @@ Call_000_216d:
   push hl
   push bc
   push hl
-  call Call_000_1fff
+  call LoadText
   add sp, $02
   ret
 
@@ -5996,7 +5997,7 @@ jr_000_21d5:
   push hl
   push bc
   push hl
-  call Call_000_1fff
+  call LoadText
   add sp, $02
   ret
 
@@ -6108,7 +6109,7 @@ Call_000_223e:
   push hl
   push bc
   push hl
-  call Call_000_1fff
+  call LoadText
   add sp, $02
   ret
 
@@ -6185,7 +6186,7 @@ Jump_000_2285:
   push bc
   inc sp
   push de
-  call LoadTiles
+  call ClearC144toC2AB
   add sp, $05
   pop bc
   ld hl, $c2ae
@@ -6976,7 +6977,7 @@ jr_000_26db:
   jr nz, jr_000_26fe
 
   push bc
-  ld hl, $4030
+  ld hl, Bank1Data4030
   push hl
   ld hl, $0000
   push hl
@@ -9189,7 +9190,7 @@ Call_000_3197:
   ld a, $03
   push af
   inc sp
-  ld hl, $31ca
+  ld hl, Address31CA
   push hl
   push de
   call Call_000_2b5a
@@ -9203,7 +9204,7 @@ Call_000_3197:
 
 
 jr_000_31af:
-  ld bc, $31ca
+  ld bc, Address31CA
   ld de, $c344
   ld a, $03
   push af
@@ -9224,7 +9225,7 @@ jr_000_31c7:
   ld e, $00
   ret
 
-
+Address31CA::
   ld b, [hl]
   ld b, c
   ld d, h
@@ -11821,6 +11822,7 @@ jr_000_3e36:
   ld d, [hl]
   ld a, b
   add d
+Address3E40::;probably not a jump
   ld b, a
   ld hl, $d6a1
   ld [hl], b

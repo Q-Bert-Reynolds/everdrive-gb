@@ -253,7 +253,7 @@ jr_003_4081:
     ld h, [hl]
     ld l, a
     push hl
-    ld hl, $8000
+    ld hl, _VRAM
     push hl
     ld l, b
     ld h, c
@@ -396,7 +396,7 @@ jr_003_4081:
     ld h, [hl]
     ld l, a
     push hl
-    ld hl, $8000
+    ld hl, _VRAM
     push hl
     ld l, b
     ld h, c
@@ -627,7 +627,7 @@ jr_003_42e8:
     ld hl, $0013
     push hl
     push de
-    ld hl, $8000
+    ld hl, _VRAM
     push hl
     ld l, b
     ld h, c
@@ -3145,7 +3145,7 @@ jr_003_4fbd:
     inc hl
     ld b, [hl]
     push bc
-    ld hl, $191d
+    ld hl, Bank0Address191D
     push hl
     ld a, $1f
     push af

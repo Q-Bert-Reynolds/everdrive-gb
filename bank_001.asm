@@ -1,106 +1,16 @@
-; Disassembly of "GBCOS.bin"
-; This file was created with:
-; mgbdis v1.5 - Game Boy ROM disassembler by Matt Currie and contributors.
-; https://github.com/mattcurrie/mgbdis
+SECTION "ROM Bank 1 Data", ROMX[$4000], BANK[1]
 
-SECTION "ROM Bank 1", ROMX[$4000], BANK[1]
+  DB $18, $ea, $af, $02, $c3, $64, $40, $f8, $06, $2b, $4e, $23, $46, $0a, $b7, $28
+  DB $0b, $d6, $2e, $20, $04, $f8, $00, $36, $01, $03, $18, $f1, $f8, $03, $71, $23
+  DB $70, $f8, $00, $7e, $b7, $28, $0d, $0a, $d6, $2e, $28, $03, $0b, $18, $f8, $f8
+  
+Bank1Data4030::
+  DB $03, $71, $23, $70, $f8, $02, $2b, $5e, $23, $56, $1a, $d6, $2e, $28, $0d, $23
+  DB $2a, $66, $6f, $36, $2e, $f8, $03, $34, $20, $02, $23, $34, $f8, $03, $2a, $66
+  DB $6f, $36, $00, $f8, $01, $2a, $66, $6f, $e5, $f8, $09, $2a, $66, $6f, $e5, $cd
+  DB $4a, $2d, $e8, $04, $e8, $09, $c9
 
-  db $18, $ea
-  xor a
-  ld [bc], a
-  jp Jump_001_4064
-
-
-  ld hl, sp+$06
-  dec hl
-  ld c, [hl]
-  inc hl
-  ld b, [hl]
-
-jr_001_400d:
-  ld a, [bc]
-  or a
-  jr z, jr_001_401c
-
-  sub $2e
-  jr nz, jr_001_4019
-
-  ld hl, sp+$00
-  ld [hl], $01
-
-jr_001_4019:
-  inc bc
-  jr jr_001_400d
-
-jr_001_401c:
-  ld hl, sp+$03
-  ld [hl], c
-  inc hl
-  ld [hl], b
-  ld hl, sp+$00
-  ld a, [hl]
-  or a
-  jr z, jr_001_4034
-
-jr_001_4027:
-  ld a, [bc]
-  sub $2e
-  jr z, jr_001_402f
-
-  dec bc
-  jr jr_001_4027
-
-jr_001_402f:
-  ld hl, sp+$03
-  ld [hl], c
-  inc hl
-  ld [hl], b
-
-jr_001_4034:
-  ld hl, sp+$02
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  ld a, [de]
-  sub $2e
-  jr z, jr_001_404c
-
-  inc hl
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-  ld [hl], $2e
-  ld hl, sp+$03
-  inc [hl]
-  jr nz, jr_001_404c
-
-  inc hl
-  inc [hl]
-
-jr_001_404c:
-  ld hl, sp+$03
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-  ld [hl], $00
-  ld hl, sp+$01
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-  push hl
-  ld hl, sp+$09
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-  push hl
-  call Call_000_2d4a
-  add sp, $04
-
-Jump_001_4064:
-  add sp, $09
-  ret
-
+SECTION "ROM Bank 1 Code", ROMX[$4067], BANK[1]
 Bank1Function4067:
   add sp, -$04
   ld hl, sp+$00
@@ -2691,7 +2601,7 @@ Call_001_4c6e:
   push af
   inc sp
   push de
-  call LoadTiles
+  call ClearC144toC2AB
   add sp, $05
   ld hl, sp+$12
   dec hl
@@ -3098,7 +3008,7 @@ Call_001_4e5b:
   push af
   inc sp
   push de
-  call LoadTiles
+  call ClearC144toC2AB
   add sp, $05
   pop bc
   ld hl, sp+$02
@@ -3710,6 +3620,7 @@ jr_001_515e:
   sub $2e
   jr nz, jr_001_5181
 
+Bank1Address5180::
   ld b, c
 
 jr_001_5181:
@@ -4014,6 +3925,7 @@ jr_001_52f4:
   inc [hl]
   jr nz, jr_001_5302
 
+Bank1Address5300::
   inc hl
   inc [hl]
 
@@ -4765,7 +4677,7 @@ jr_001_565e:
   inc de
   ld a, [de]
   ld [hl], a
-  ld de, $570f
+  ld de, Bank1Address570F
   ld hl, $0000
   push hl
   ld hl, $0000
@@ -4785,7 +4697,7 @@ jr_001_565e:
   push de
   call Call_001_4d23
   add sp, $0c
-  ld de, $570f
+  ld de, Bank1Address570F
   ld hl, $0000
   push hl
   ld hl, $0000
@@ -4814,14 +4726,13 @@ jr_001_565e:
   call Call_001_45c4
   ld a, e
   or a
-  jr nz, jr_001_570c
-
+  jr nz, Jump_001_570c
+  ;uh.. If nz, jump. Otherwise, fallthrough to the same place
 Jump_001_570c:
-jr_001_570c:
   add sp, $0a
   ret
 
-
+Bank1Address570F::
   jr nz, jr_001_5731
 
   jr nz, jr_001_5733
@@ -5181,7 +5092,7 @@ Bank1Function58AA:
   ld l, a
   ret
 
-
+Bank1Function58B6::
   ld de, $c6f2
   ret
 
@@ -5550,7 +5461,7 @@ Bank1Function5A35::
   push af
   inc sp
   push de
-  call LoadTiles
+  call ClearC144toC2AB
   add sp, $05
   ld hl, sp+$11
   dec hl
@@ -5601,7 +5512,7 @@ jr_001_5ab0:
   add sp, $12
   ret
 
-
+Bank1Address5AB3::
   rra
   inc e
   rra
@@ -5876,7 +5787,7 @@ Call_001_5c26:
   push af
   inc sp
   push de
-  call LoadTiles
+  call ClearC144toC2AB
   add sp, $05
   pop bc
   ld hl, $0004
@@ -6242,7 +6153,7 @@ Jump_001_5dea:
   sub b
   jp nc, Jump_001_5e2b
 
-  ld de, $5ab3
+  ld de, Bank1Address5AB3
   ld l, [hl]
   ld h, $00
   add hl, de
@@ -6432,7 +6343,7 @@ Call_001_5ec4:
   push de
   ld hl, $0001
   push hl
-  ld hl, $5180
+  ld hl, Bank1Address5180
   push hl
   call Call_001_6c47
   add sp, $08
@@ -6711,7 +6622,7 @@ Call_001_6008:
   ld [hl], d
   ld hl, $0001
   push hl
-  ld hl, $5180
+  ld hl, Bank1Address5180
   push hl
   ld hl, sp+$12
   ld a, [hl+]
@@ -6815,7 +6726,7 @@ Call_001_6008:
   ld [hl], b
   ld hl, $0001
   push hl
-  ld hl, $5180
+  ld hl, Bank1Address5180
   push hl
   ld hl, sp+$12
   ld a, [hl+]
@@ -7357,7 +7268,7 @@ jr_001_6366:
   push hl
   call Call_000_04ba
   add sp, $02
-  ld de, $63db
+  ld de, Bank1Address63DB
   ld a, $04
   push af
   inc sp
@@ -7390,12 +7301,12 @@ jr_001_6394:
   inc de
   ld a, [de]
   ld b, a
-  ld hl, $63ed
+  ld hl, Bank1Address63ED
   push hl
-  ld hl, $63e0
+  ld hl, Bank1Address63E0
   push hl
   push bc
-  ld hl, $0000
+  ld hl, 0
   push hl
   call Call_001_6402
   add sp, $08
@@ -7409,8 +7320,8 @@ jr_001_63b8:
   or a
   jr z, jr_001_63d6
 
-  ld de, $63f1
-  ld hl, $63fe
+  ld de, Bank1Address63F1
+  ld hl, Bank1Address63FE
   push hl
   push de
   ld hl, $00a4
@@ -7430,12 +7341,13 @@ jr_001_63d8:
   add sp, $02
   ret
 
-
+Bank1Address63DB::;probably a table
   ld d, e
   ld b, c
   ld d, [hl]
   ld b, l
   nop
+Bank1Address63E0::
   cpl
   ld b, a
   ld b, d
@@ -7443,16 +7355,20 @@ jr_001_63d8:
   ld d, e
   ld e, c
   ld d, e
+Bank1Address63E7::
   cpl
   ld d, e
   ld b, c
   ld d, [hl]
   ld b, l
   nop
+
+Bank1Address63ED::
   ld [hl], e
   ld [hl], d
   ld l, l
   nop
+Bank1Address63F1::
   cpl
   ld b, a
   ld b, d
@@ -7466,6 +7382,7 @@ jr_001_63d8:
   ld b, c
   ld d, b
   nop
+Bank1Address63FE::
   ld [hl], e
   ld h, c
   halt
@@ -7570,7 +7487,7 @@ Bank1Function6471::
   push hl
   call Call_000_04ba
   add sp, $02
-  ld de, $64d5
+  ld de,Bank1Address64D5
   ld hl, $be00
   push hl
   push de
@@ -7582,8 +7499,8 @@ jr_001_649e:
   or a
   jr z, jr_001_64b8
 
-  ld de, $64da
-  ld hl, $64e7
+  ld de, Bank1Address64DA
+  ld hl, Bank1Address64E7
   push hl
   push de
   ld hl, $0000
@@ -7599,8 +7516,8 @@ jr_001_64b8:
   or a
   jr z, jr_001_64d2
 
-  ld de, $64eb
-  ld hl, $64f8
+  ld de, Bank1Address64EB
+  ld hl, Bank1Address64F8
   push hl
   push de
   ld hl, $0040
@@ -7615,12 +7532,13 @@ jr_001_64d2:
   ld e, $00
   ret
 
-
+Bank1Address64D5::
   ld c, [hl]
   ld d, l
   ld c, h
   ld c, h
   nop
+Bank1Address64DA::
   cpl
   ld b, a
   ld b, d
@@ -7628,16 +7546,19 @@ jr_001_64d2:
   ld d, e
   ld e, c
   ld d, e
+Bank1Address64E1::
   cpl
   ld d, e
   ld b, c
   ld d, [hl]
   ld b, l
   nop
+Bank1Address64E7::
   ld [hl], e
   ld [hl], d
   ld l, l
   nop
+Bank1Address64EB::
   cpl
   ld b, a
   ld b, d
@@ -7645,12 +7566,14 @@ jr_001_64d2:
   ld d, e
   ld e, c
   ld d, e
+Bank1Address64F2::
   cpl
   ld d, e
   ld c, [hl]
   ld b, c
   ld d, b
   nop
+Bank1Address64F8::
   ld [hl], e
   ld h, c
   halt
@@ -7979,11 +7902,11 @@ Call_001_6672:
   ld b, d
   push de
   push bc
-  ld hl, $66bf
+  ld hl, Bank1Address66BF
   push hl
   ld hl, $c04c
   push hl
-  ld hl, $66b2
+  ld hl, Bank1Address66B2
   push hl
   call Call_000_3f5f
   add sp, $08
@@ -8007,7 +7930,7 @@ Call_001_6672:
   add sp, $68
   ret
 
-
+Bank1Address66B2::
   cpl
   ld b, a
   ld b, d
@@ -8015,16 +7938,19 @@ Call_001_6672:
   ld d, e
   ld e, c
   ld d, e
+Bank1Address66B9::
   cpl
   ld d, e
   ld b, c
   ld d, [hl]
   ld b, l
   nop
+Bank1Address66BF::
   ld [hl], d
   ld [hl], h
   ld h, e
   nop
+
 Bank1Function66C3::
   ld hl, $fdf4
   add hl, sp
@@ -8040,7 +7966,6 @@ Bank1Function66C3::
 jr_001_66d4:
   ld e, $00
   jp Jump_001_6754
-
 
 jr_001_66d9:
   ld hl, $0200
@@ -8088,7 +8013,7 @@ jr_001_66fc:
   push af
   inc sp
   push de
-  call LoadTiles
+  call ClearC144toC2AB
   add sp, $05
   pop bc
   ld hl, $020b
@@ -8558,7 +8483,7 @@ jr_001_693d:
 
 jr_001_6964:
   push bc
-  call Call_000_216d
+  call LoadOSInitText
   add sp, $02
 
 jr_001_696a:
