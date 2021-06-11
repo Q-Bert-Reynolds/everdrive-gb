@@ -518,133 +518,22 @@ jr_000_01cc:
   rst $38
   rst $38
   rst $38
-  nop
-  DB 1
-CartSwitch:: DB 0
-  DB 0
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  ld [hl], b
-  rla
-  ld b, l
-  add hl, de
-  sub e
-  ld [de], a
-  ld l, a
-  ld h, l
-  sub $65
-  ld b, c
-  db $10
-  xor d
-  ld a, [de]
-  xor [hl]
-  ld a, [de]
-  or d
-  ld a, [de]
-  adc a
-  inc b
-  cp d
-  inc b
-  xor b
-  inc b
-  or c
-  inc b
-  rst $28
-  add hl, bc
-  ld [bc], a
-  ld a, [bc]
-  adc b
-  rra
-  sbc e
-  rra
-  ld l, l
-  ld hl, $2193
-  ldh [rNR42], a
-  ld a, $22
-  rst $38
-  rra
-  jp nz, Jump_000_3420
 
-  jr nz, jr_000_01b5
 
-  jr nz, jr_000_01cc
+  DB $00
+  DB $01
+CartSwitch:: DB $00
+  DB $00, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
 
-  jr nz, @+$4f
-
-  ld hl, $09cc
-  add hl, bc
-  ld [hl+], a
-  ld c, a
-  ld [hl+], a
-  ld l, b
-  ld [hl+], a
-  ld [hl], d
-  ld [hl+], a
-  pop bc
-  add hl, bc
-  db $eb
-  ld sp, $5896
-  ccf
-  ld a, [hl-]
-  ld h, a
-  ld b, b
-  or $3c
-  jp nz, $7049
-
-  ld [hl], $5f
-  ccf
-  sbc [hl]
-  ld e, b
-  xor d
-  ld e, b
-  or [hl]
-  ld e, b
-  sbc e
-  ld d, a
-  and d
-  dec hl
-  cp h
-  dec hl
-  jr CheckCartSwitch
-
-  ld e, d
-  dec hl
-  and $67
-  ld a, [c]
-  ld l, d
-  rrca
-  ld l, e
-  sbc $6b
-  dec d
-  ld l, h
-  ld [hl-], a
-  ld l, h
-  add sp, $6a
-  cp d
-  ld e, b
-  ld b, c
-  ld e, c
-  ld h, [hl]
-  ld e, h
-  ld e, $5b
-  cp a
-  ld e, d
-  ei
-  ld e, d
-  ld a, a
-  ld e, e
-  add hl, bc
-  ld e, h
+ATileProbably::
+  DB $70, $17, $45, $19, $93, $12, $6f, $65, $d6, $65, $41, $10, $aa, $1a, $ae, $1a
+  DB $b2, $1a, $8f, $04, $ba, $04, $a8, $04, $b1, $04, $ef, $09, $02, $0a, $88, $1f
+  DB $9b, $1f, $6d, $21, $93, $21, $e0, $21, $3e, $22, $ff, $1f, $c2, $20, $34, $20
+  DB $84, $20, $99, $20, $4d, $21, $cc, $09, $09, $22, $4f, $22, $68, $22, $72, $22
+  DB $c1, $09, $eb, $31, $96, $58, $3f, $3a, $67, $40, $f6, $3c, $c2, $49, $70, $36
+  DB $5f, $3f, $9e, $58, $aa, $58, $b6, $58, $9b, $57, $a2, $2b, $bc, $2b, $18, $2c
+  DB $5a, $2b, $e6, $67, $f2, $6a, $0f, $6b, $de, $6b, $15, $6c, $32, $6c, $e8, $6a
+  DB $ba, $58, $41, $59, $66, $5c, $1e, $5b, $bf, $5a, $fb, $5a, $7f, $5b, $09, $5c
 
 EntryPoint:
   di
@@ -657,7 +546,7 @@ CheckCartSwitch:
   cp $00
   jr nz, CartSwitchPressed
 
-InitializeCart
+InitializeCart::
   ld sp, $dfff;end of ram
   ld a, $00
   ldh [rSVBK], a
@@ -666,7 +555,7 @@ InitializeCart
   ld a, $04
   ld [$bd09], a
   call Call_000_02a9
-  call Call_000_0a43
+  call InitializeOS
   jr EntryPoint
 
 Call_000_02a9:
@@ -1430,57 +1319,62 @@ Call_000_0605:
   rst $38
   rst $38
   rst $38
-  ld h, $25
-  inc b
-  dec b
-  ld b, $07
-  db $10
-  ld de, $1612
-  rla
-  ld a, [de]
-  dec de
-  inc e
-  jr nz, jr_000_0658
 
-  ld [hl+], a
-  inc hl
-  inc h
-  ld b, c
-  ld b, d
-  ld b, e
-  ld b, h
-  ld b, l
-  ld b, a
-  ld c, b
-  ld c, c
-  ld c, d
-  ld c, e
-  jr nc, jr_000_0677
+SramToIOMap::
+  DB rAUDENA           & $FF
+  DB rAUDTERM          & $FF
+  DB rDIV              & $FF
+  DB rTIMA             & $FF
+  DB rTMA              & $FF
+  DB rTAC              & $FF
+  DB rAUD1SWEEP        & $FF
+  DB rAUD1LEN          & $FF
+  DB rAUD1ENV          & $FF
+  DB rAUD2LEN          & $FF
+  DB rAUD2ENV          & $FF
+  DB rAUD3ENA          & $FF
+  DB rAUD3LEN          & $FF
+  DB rAUD3LEVEL        & $FF
+  DB rAUD4LEN          & $FF
+  DB rAUD4ENV          & $FF
+  DB rAUD4POLY         & $FF
+  DB rAUD4GO           & $FF
+  DB rAUDVOL           & $FF
+  DB rSTAT             & $FF
+  DB rSCY              & $FF
+  DB rSCX              & $FF
+  DB rLY               & $FF
+  DB rLYC              & $FF
+  DB rBGP              & $FF
+  DB rOBP0             & $FF
+  DB rOBP1             & $FF
+  DB rWY               & $FF
+  DB rWX               & $FF
+  DB _AUD3WAVERAM      & $FF
+  DB (_AUD3WAVERAM+$1) & $FF
+  DB (_AUD3WAVERAM+$2) & $FF
+  DB (_AUD3WAVERAM+$3) & $FF
+  DB (_AUD3WAVERAM+$4) & $FF
+  DB (_AUD3WAVERAM+$5) & $FF
+  DB (_AUD3WAVERAM+$6) & $FF
+  DB (_AUD3WAVERAM+$7) & $FF
+  DB (_AUD3WAVERAM+$8) & $FF
+  DB (_AUD3WAVERAM+$9) & $FF
+  DB (_AUD3WAVERAM+$A) & $FF
+  DB (_AUD3WAVERAM+$B) & $FF
+  DB (_AUD3WAVERAM+$C) & $FF
+  DB (_AUD3WAVERAM+$D) & $FF
+  DB (_AUD3WAVERAM+$E) & $FF
+  DB (_AUD3WAVERAM+$F) & $FF
+  DB rLCDC             & $FF
+  DB rVBK              & $FF
+  DB rSVBK             & $FF
+  DB rIE               & $FF
+  DB rIF               & $FF
+  DB 0
 
-  ld [hl-], a
-  inc sp
-  inc [hl]
-  dec [hl]
-  ld [hl], $37
-  jr c, @+$3b
+SaveText:: DB "SAVE"
 
-  ld a, [hl-]
-  dec sp
-  inc a
-  dec a
-  ld a, $3f
-  ld b, b
-  ld c, a
-  ld [hl], b
-  rst $38
-
-jr_000_0658:
-  rrca
-  nop
-  ld d, e
-  ld b, c
-  ld d, [hl]
-  ld b, l
   rst $38
   rst $38
   rst $38
@@ -1537,19 +1431,19 @@ Call_000_06af:
   ld [$bd02], a
   call Call_000_09af
   ld hl, $be00
-  ld a, [$065a]
+  ld a, [SaveText];[$065a]
   ld [hl+], a
-  ld a, [$065b]
+  ld a, [SaveText+1]
   ld [hl+], a
-  ld a, [$065c]
+  ld a, [SaveText+2]
   ld [hl+], a
-  ld a, [$065d]
+  ld a, [SaveText+3]
   ld [hl+], a
   ld a, [$0620]
   ld [hl+], a
   ld a, [$0621]
   ld [hl+], a
-  ld a, [$bd14]
+  ld a, [$bd14];_SRAM+$1d14
   ld [hl+], a
   ld a, [$bd15]
   ld [hl+], a
@@ -1728,7 +1622,7 @@ Call_000_07ce:
   call Call_000_08cb
   call Call_000_092e
   call Call_000_0814
-  jp Jump_000_09be
+  jp LoopForever2
 
 
 jr_000_07f7:
@@ -1935,14 +1829,14 @@ Call_000_0948:
   ldh [rSVBK], a
   ret
 
-
+DoWeEverGetHere:;is it data?
   ld a, $00
   ld [$bd07], a
   ld a, $04
   ld [$bd09], a
   ld a, $00
   ld [$bd09], a
-  jp Jump_000_09be
+  jp LoopForever2
 
 
 CopyEndOfSRAMtoHL::;hl = address, c = count
@@ -1997,7 +1891,7 @@ Copy256FromDEtoHL:
 
 
 CopySRAMtoIO:
-  ld hl, $0627;a table maybe?
+  ld hl, SramToIOMap;a table maybe?
   ld bc, _IO
   ld de, $bf00;last 256 bytes of _SRAM
 .loopTable:
@@ -2028,10 +1922,8 @@ jr_000_09b6:
   ret
 
 
-Jump_000_09be:
-jr_000_09be:
-  jr jr_000_09be
-
+LoopForever2::
+  jr LoopForever2
   nop
 
 WaitVBL:;maybe?
@@ -2151,13 +2043,13 @@ ENDR
   ret
 
 
-Call_000_0a43:
+InitializeOS:
   ld a, $01
   push af
   inc sp
   call Call_000_1e04
   inc sp
-  ld de, $0a7d
+  ld de, OSInitText
   push de
   call Call_000_216d
   add sp, $02
@@ -2192,16 +2084,8 @@ jr_000_0a66:
 
   ret
 
-DataAtA7D::
-  ld c, a
-  ld d, e
-  jr nz, jr_000_0aea
-
-  ld l, [hl]
-  ld l, c
-  ld [hl], h
-  ld l, $2e
-  ld l, $00
+OSInitText::
+    db "OS init...", 0
 
 Jump_000_0a88:
   ld hl, $fde3
@@ -2613,113 +2497,13 @@ jr_000_0cd3:
   ld sp, hl
   ret
 
-SomeData::
-  ld c, c
-  ld l, [hl]
-  jr nz, jr_000_0d27
-
-  ld h, c
-  ld l, l
-  ld h, l
-  jr nz, jr_000_0d32
-
-  ld h, l
-  ld l, [hl]
-  ld [hl], l
-  nop
-  ld d, e
-  ld h, c
-  db $76
-  ld h, l
-  jr nz, jr_000_0d42
-
-  ld [hl], h
-  ld h, c
-  ld [hl], h
-  ld h, l
-  nop
-  ld c, h
-  ld l, a
-  ld h, c
-  ld h, h
-  jr nz, @+$55
-
-  ld [hl], h
-  ld h, c
-  ld [hl], h
-  ld h, l
-  nop
-  ld b, d
-  ld h, c
-  ld h, e
-  ld l, e
-  jr nz, @+$76
-
-  ld l, a
-  jr nz, jr_000_0d75
-
-  ld h, l
-  ld l, [hl]
-  ld [hl], l
-  nop
-  ld [hl], h
-  ld l, b
-  ld h, l
-  ld [hl], d
-  ld h, l
-  jr nz, @+$6b
-
-  ld [hl], e
-  jr nz, @+$70
-
-  ld l, a
-  nop
-  ld [hl], e
-  ld h, c
-  db $76
-  ld h, l
-  jr nz, jr_000_0d82
-
-  ld h, c
-  ld [hl], h
-  ld h, c
-  nop
-  ld h, [hl]
-  ld l, a
-  ld [hl], d
-  jr nz, jr_000_0d8a
-
-jr_000_0d27:
-  ld [hl], l
-  ld [hl], d
-  ld [hl], d
-  ld h, l
-  ld l, [hl]
-  ld [hl], h
-  jr nz, jr_000_0d96
-
-  ld h, c
-  ld l, l
-  ld h, l
-
-jr_000_0d32:
-  nop
-  ld c, h
-  ld l, a
-  ld h, c
-  ld h, h
-  ld l, c
-  ld l, [hl]
-  ld h, a
-  ld l, $2e
-  ld l, $00
-  ld d, e
-  ld b, c
-  ld d, [hl]
-  ld b, l
-
-jr_000_0d42:
-  nop
+InGameMenuText:: DB "In Game Menu", 0  
+SaveStateText::  DB "Save State", 0
+LoadStateText::  DB "Load State", 0
+BackToMenuText:: DB "Back to menu", 0
+NoSaveDataText:: DB "there is no", 0, "save data", 0, "for current game", 0
+LoadingText::    DB "Loading...", 0
+SaveText2::      DB "SAVE", 0
 
 Call_000_0d43:
   add sp, -$07
@@ -3133,7 +2917,7 @@ Jump_000_0f61:
   add sp, $6a
   ret
 
-
+SOMETHING::
   cpl
   ld b, a
   ld b, d
@@ -5341,8 +5125,8 @@ jr_000_1a8d:
   call Call_000_0545
 
 jr_000_1a97:
-  ld hl, $ff26
-  ld [hl], $80
+  ld hl,rAUDENA
+  ld [hl], AUDENA_ON
   ld a, [$c031]
   push af
   inc sp
@@ -6077,21 +5861,21 @@ jr_000_1e53:
   ld [hl], $00
 
 jr_000_1e58:
-  ld hl, $ff41
+  ld hl, rSTAT
   ld [hl], $00
-  ld l, $42
+  ld l, (rSCY & $FF)
   ld [hl], $00
-  ld l, $43
+  ld l, (rSCX & $FF)
   ld [hl], $00
-  ld l, $47
+  ld l, (rBGP & $FF)
   ld [hl], $dc
-  ld l, $48
+  ld l, (rOBP0 & $FF)
   ld [hl], $00
-  ld l, $49
+  ld l, (rOBP1 & $FF)
   ld [hl], $00
-  ld l, $4a
+  ld l, (rWY & $FF)
   ld [hl], $00
-  ld l, $4b
+  ld l, (rWX & $FF)
   ld [hl], $00
   ld hl, $c2b2
   ld a, [hl]
