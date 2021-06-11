@@ -2917,60 +2917,10 @@ Jump_000_0f61:
   add sp, $6a
   ret
 
-SOMETHING::
-  cpl
-  ld b, a
-  ld b, d
-  ld b, e
-  ld d, e
-  ld e, c
-  ld d, e
-  cpl
-  ld d, e
-  ld b, c
-  ld d, [hl]
-  ld b, l
-  nop
-  cpl
-  ld b, a
-  ld b, d
-  ld b, e
-  ld d, e
-  ld e, c
-  ld d, e
-  cpl
-  ld b, e
-  ld c, b
-  ld b, l
-  ld b, c
-  ld d, h
-  ld d, e
-  nop
-  cpl
-  ld b, a
-  ld b, d
-  ld b, e
-  ld d, e
-  ld e, c
-  ld d, e
-  cpl
-  ld d, e
-  ld c, [hl]
-  ld b, c
-  ld d, b
-  nop
-  cpl
-  ld b, a
-  ld b, d
-  ld b, e
-  ld d, e
-  ld e, c
-  ld d, e
-  jr nz, @+$22
-
-  jr nz, @+$22
-
-  jr nz, jr_000_0f9c
+GBCSysSaveText::  DB "/GBCSYS/SAVE", 0
+GBSysCheatsText:: DB "/GBCSYS/CHEATS", 0
+GBSysSnapText::   DB "/GBCSYS/SNAP", 0
+GBSysText::       DB "/GBCSYS     ", 0
 
 Call_000_0f9c:
 jr_000_0f9c:
@@ -3074,27 +3024,7 @@ jr_000_102a:
   add sp, $02
   ret
 
-
-  cpl
-  ld b, a
-  ld b, d
-  ld b, e
-  ld d, e
-  ld e, c
-  ld d, e
-  cpl
-  ld d, d
-  ld b, l
-  ld b, a
-  ld c, c
-  ld d, e
-  ld d, h
-  ld d, d
-  ld e, c
-  ld b, d
-  ld c, c
-  ld c, [hl]
-  nop
+GBSysRegistryBinText:: DB "/GBCSYS/REGISTRYBIN", 0
 
 Call_000_1041:
   add sp, -$80
@@ -3151,28 +3081,7 @@ jr_000_1093:
   add sp, $66
   ret
 
-
-  cpl
-  ld b, a
-  ld b, d
-  ld b, e
-  ld d, e
-  ld e, c
-  ld d, e
-  cpl
-  ld d, d
-  ld b, l
-  ld b, a
-  ld c, c
-  ld d, e
-  ld d, h
-  ld d, d
-  ld e, c
-  ld b, d
-  ld c, c
-  ld c, [hl]
-  nop
-
+GBSysRegistryBinText2:: db "/GBCSYS/REGISTRYBIN", 0
 Call_000_10ac:
   ld hl, $fd17
   add hl, sp
