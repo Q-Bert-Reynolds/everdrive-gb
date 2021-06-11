@@ -1,0 +1,1 @@
+This is a disassembly of Krikzz's [Everdrive GBC-OS v1.04](http://krikzz.com/pub/support/everdrive-gb/x-series/OS/GBC-OS-v1.04.zip).
