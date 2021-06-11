@@ -55,6 +55,7 @@ kb_modifiers:: DB ;FSCAUPNL - (F)unction, (S)hift, (C)trl, (A)lt, S(U)per, Ca(P)
 kb_flags:: DB;xxxxxxER - (E)xtended key flag, (R)elease key flag
 kb_type:: DB
 kb_mode:: DB
+kb_detected:: DB
 
 SECTION "Keyboard Code Bank X", ROMX, BANK[1]
 INCLUDE "keyboard/ps2_interrupt.asm"
@@ -87,11 +88,11 @@ SerialInterrupt::
   reti
 
 DetectKeyboard::
-  ld a, [kb_type]
-  cp a, KB_TYPE_PS2
-  ret z
-  cp a, KB_TYPE_IGKB
-  ret z;no need to detect twice
+  ld a, [kb_detected]
+  and a
+  ret nz
+  ld a, 1
+  ld [kb_detected], a
   
   ei
   ld a, [rIE]

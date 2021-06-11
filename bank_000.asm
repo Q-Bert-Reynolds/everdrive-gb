@@ -80,12 +80,13 @@ EntryPoint:
   ld a, [CartSwitch]
 
 CheckCartSwitch:
-  cp $00
+  and a
   jr nz, CartSwitchPressed
 
 InitializeCart::
   ld sp, $dfff;end of ram
-  ld a, $00
+  xor a
+  ld [kb_detected], a
   ldh [rSVBK], a
   ldh [rVBK], a
   ld [$bd07], a
@@ -107,7 +108,7 @@ SetInterrupts::;probably not the only thing this does
   ret
 
 CartSwitchPressed:
-  ld a, $00
+  xor a
   ld [CartSwitch], a
   ld a, $10
   ld [$bd06], a
