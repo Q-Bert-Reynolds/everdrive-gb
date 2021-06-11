@@ -101,8 +101,7 @@ Jump_001_4064:
     add sp, $09
     ret
 
-
-Call_001_4067:
+Bank1Function4067:
     add sp, -$04
     ld hl, sp+$00
     ld c, l
@@ -124,7 +123,7 @@ Call_001_4067:
     ld h, [hl]
     ld l, a
     push hl
-    call Call_001_4106
+    call Bank1Function4106
     add sp, $07
     ld a, e
     pop bc
@@ -211,11 +210,11 @@ jr_001_40b2:
     ld h, [hl]
     ld l, a
     push hl
-    call Call_001_4106
+    call Bank1Function4106
     add sp, $07
     ld a, e
     or a
-    jr nz, jr_001_4103
+    jr nz, Jump_001_4103
 
 Jump_001_40f2:
     ld hl, sp+$0a
@@ -232,12 +231,10 @@ Jump_001_40f2:
     add sp, $04
 
 Jump_001_4103:
-jr_001_4103:
     add sp, $04
     ret
 
-
-Call_001_4106:
+Bank1Function4106::
     add sp, -$1b
     ld hl, sp+$0b
     ld [hl], $00
@@ -2087,7 +2084,7 @@ Jump_001_49bf:
     ret
 
 
-Call_001_49c2:
+Bank1Function49C2:
     add sp, -$12
     ld de, $d6a0
     ld a, [de]
@@ -4580,7 +4577,7 @@ Jump_001_55c8:
     add sp, $2f
     ret
 
-
+Bank1Function55CB:
     add sp, -$0a
     ld hl, sp+$00
     ld c, l
@@ -4602,7 +4599,7 @@ Jump_001_55c8:
     ld h, [hl]
     ld l, a
     push hl
-    call Call_001_4106
+    call Bank1Function4106
     add sp, $07
     pop bc
     ld a, e
@@ -4687,7 +4684,7 @@ jr_001_5615:
     ld h, [hl]
     ld l, a
     push hl
-    call Call_001_4106
+    call Bank1Function4106
     add sp, $07
     ld a, e
     sub $f0
@@ -5172,6 +5169,7 @@ Jump_001_5893:
     ret
 
 
+Bank1Function58AA:
     ld hl, $c2df
     dec hl
     ld e, [hl]
@@ -5187,7 +5185,7 @@ Jump_001_5893:
     ld de, $c6f2
     ret
 
-
+Bank1Function58BA::
     ld hl, sp+$03
     bit 7, [hl]
     jr z, jr_001_58c4
@@ -5298,7 +5296,7 @@ jr_001_591c:
     ld e, $00
     ret
 
-
+Bank1Function5941::
     add sp, -$05
     ld hl, sp+$09
     ld a, [hl+]
@@ -5509,7 +5507,7 @@ Jump_001_5a32:
     add sp, $05
     ret
 
-
+Bank1Function5A35::
     add sp, -$12
     ld hl, $bd13
     ld [hl], $06
@@ -6725,7 +6723,7 @@ Call_001_6008:
     ld h, [hl]
     ld l, a
     push hl
-    call Call_001_6c4d
+    call Bank1Function6C4D
     add sp, $08
     ld c, l
     ld b, h
@@ -6735,7 +6733,7 @@ Call_001_6008:
     push hl
     push bc
     push de
-    call Call_001_6c53
+    call Bank1Function6C53
     add sp, $08
     ld b, l
     ld c, h
@@ -6771,7 +6769,7 @@ Call_001_6008:
     ld h, [hl]
     ld l, a
     push hl
-    call Call_001_6c4d
+    call Bank1Function6C4D
     add sp, $08
     ld c, l
     ld b, h
@@ -6781,7 +6779,7 @@ Call_001_6008:
     push hl
     push bc
     push de
-    call Call_001_6c53
+    call Bank1Function6C53
     add sp, $08
     ld b, l
     ld c, h
@@ -6805,7 +6803,7 @@ Call_001_6008:
     ld h, [hl]
     ld l, a
     push hl
-    call Call_001_6c4d
+    call Bank1Function6C4D
     add sp, $08
     ld b, l
     ld c, h
@@ -6829,7 +6827,7 @@ Call_001_6008:
     ld h, [hl]
     ld l, a
     push hl
-    call Call_001_6c53
+    call Bank1Function6C53
     add sp, $08
     ld b, l
     ld c, h
@@ -7314,7 +7312,7 @@ jr_001_631a:
     add sp, $21
     ret
 
-
+Bank1Function6334::
     add sp, -$02
     ld hl, sp+$01
     ld [hl], $01
@@ -7524,7 +7522,7 @@ Call_001_6402:
     ld l, a
     push hl
     push de
-    call Call_001_4067
+    call Bank1Function4067
     add sp, $06
     pop bc
     ld a, e
@@ -7553,7 +7551,7 @@ jr_001_6468:
     add sp, $6a
     ret
 
-
+Bank1Function6471::
     call Call_000_04b1
     ld de, $c03a
     ld a, [de]
@@ -7705,7 +7703,7 @@ Call_001_64fc:
     ld l, a
     push hl
     push de
-    call Call_001_4067
+    call Bank1Function4067
     add sp, $06
     pop bc
     ld a, e
@@ -7818,7 +7816,7 @@ jr_001_65bb:
     inc sp
     push de
     push bc
-    call Call_001_49c2
+    call Bank1Function49C2
     add sp, $05
     ld a, e
     or a
@@ -8001,7 +7999,7 @@ Call_001_6672:
     push hl
     push bc
     push de
-    call Call_001_4067
+    call Bank1Function4067
     add sp, $06
     add sp, $7f
     add sp, $7f
@@ -8027,6 +8025,7 @@ Call_001_6672:
     ld [hl], h
     ld h, e
     nop
+Bank1Function66C3::
     ld hl, $fdf4
     add hl, sp
     ld sp, hl
@@ -8124,7 +8123,7 @@ jr_001_66fc:
     ld hl, $0001
     push hl
     push de
-    call Call_001_49c2
+    call Bank1Function49C2
     add sp, $05
     ld a, e
     or a
@@ -8144,6 +8143,7 @@ jr_001_6754:
     ret
 
 
+Bank1Function675E::
     ld hl, $fdfe
     add hl, sp
     ld sp, hl
@@ -8184,12 +8184,12 @@ jr_001_677f:
     jr nz, jr_001_6797
 
     ld e, a
-    jr jr_001_67b7
+    jr Jump_001_67b7
 
 jr_001_6797:
     ld a, e
     or a
-    jr nz, jr_001_67b7
+    jr nz, Jump_001_67b7
 
     ld a, $01
     push af
@@ -8201,7 +8201,7 @@ jr_001_6797:
     add sp, $05
     ld a, e
     or a
-    jr nz, jr_001_67b7
+    jr nz, Jump_001_67b7
 
     pop hl
     push hl
@@ -8211,7 +8211,6 @@ jr_001_6797:
     ld e, $00
 
 Jump_001_67b7:
-jr_001_67b7:
     ld c, l
     ld b, h
     ld hl, $0202
@@ -8221,7 +8220,7 @@ jr_001_67b7:
     ld h, b
     ret
 
-
+Bank1Function67C1::
     add sp, -$0a
     ld a, [$c002]
     or a
@@ -8250,6 +8249,7 @@ jr_001_67e3:
     ret
 
 
+Bank1Function67E6:
     add sp, -$13
     ld hl, sp+$12
     ld [hl], $00
@@ -9120,16 +9120,15 @@ Call_001_6c47:
     jp Jump_001_6e58
 
 
-Call_001_6c4d:
+Bank1Function6C4D:
     jp Jump_001_6f78
 
 
     jp Jump_001_7025
 
 
-Call_001_6c53:
+Bank1Function6C53:
     jp Jump_001_714e
-
 
     ld a, $05
     rst $08
@@ -9813,7 +9812,7 @@ jr_001_6f16:
     ld h, [hl]
     ld l, a
     push hl
-    call Call_001_6c4d
+    call Bank1Function6C4D
     add sp, $08
     ld b, l
     ld c, h
@@ -10212,7 +10211,7 @@ jr_001_70eb:
     ld h, [hl]
     ld l, a
     push hl
-    call Call_001_6c53
+    call Bank1Function6C53
     add sp, $08
     ld c, l
     ld b, h
