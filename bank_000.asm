@@ -32,7 +32,7 @@ SECTION "TimerOverflow", ROM0[$0050]
   reti
 
 SECTION "Serial", ROM0[$0058]
-  reti
+  jp SerialInterrupt
 
 SECTION "p1thru4", ROM0[$0060]
   reti
@@ -56,14 +56,12 @@ SECTION "Header", ROM0[$100]
   DB 0;complement check and checksum are overwritten by RGBFIX
   DW 0
 
-SECTION "Bank 0 Data", ROM0[$01f0]
+SECTION "Bank 0 R/W Data $01f0", ROM0[$01f0]
   DB $00
   DB $01
 CartSwitch:: DB 0
   DB $00
   DB $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
-
-ATable::
   DB $70, $17, $45, $19, $93, $12, $6f, $65, $d6, $65, $41, $10, $aa, $1a, $ae, $1a
   DB $b2, $1a, $8f, $04, $ba, $04, $a8, $04, $b1, $04, $ef, $09, $02, $0a, $88, $1f
   DB $9b, $1f, $6d, $21, $93, $21, $e0, $21, $3e, $22, $ff, $1f, $c2, $20, $34, $20
@@ -73,7 +71,7 @@ ATable::
   DB $5a, $2b, $e6, $67, $f2, $6a, $0f, $6b, $de, $6b, $15, $6c, $32, $6c, $e8, $6a
   DB $ba, $58, $41, $59, $66, $5c, $1e, $5b, $bf, $5a, $fb, $5a, $7f, $5b, $09, $5c
 
-SECTION "Bank 0 Code", ROM0
+SECTION "Bank 0 Code, A", ROM0[$0280]
 EntryPoint:
   di
   ld sp, $dfff
@@ -93,15 +91,16 @@ InitializeCart::
   ld [$bd07], a
   ld a, $04
   ld [$bd09], a
-  call Call_000_02a9
+  call SetInterrupts
   call InitializeOS
   jr EntryPoint
 
-Call_000_02a9:
+SetInterrupts::;probably not the only thing this does
   ld a, $04
   ld [$bd06], a
-  ld a, $00
-  ld_long rIE, a;disable interrupts
+  ld a, IEF_SERIAL
+  ldh [rIE], a;enable serial interrupt
+  xor a
   ld [$bd01], a
   ld a, $04
   ld [$bd08], a
@@ -675,10 +674,9 @@ SetCPUSpeedSlow:
 
 
 Call_000_055b:
-jr_000_055b:
   ld a, [$bd0c]
   and $80
-  jr nz, jr_000_055b
+  jr nz, Call_000_055b
 
   ret
 
@@ -694,7 +692,6 @@ Call_000_0563:
 
 
 Call_000_0574:
-Jump_000_0574:
   ld a, $30
   ld [$bd0c], a
   ld [$bd0d], a
@@ -827,37 +824,37 @@ Call_000_0605:
   ld [$bd0f], a
   ret
 
+SECTION "Bank 0 R/W Data $060b", ROM0[$060b]
+edRW_060B: DB 0
+edRW_060C: DB 0
+edRW_060D: DB 0
+edRW_060E: DB 0
+edRW_060F: DB 0
+edRW_0610: DB 0
+edRW_0611: DB 0
+edRW_0612: DB 0
+edRW_0613: DB 0
+edRW_0614: DB 0
+edRW_0615: DB 0
+edRW_0616: DB 0
+edRW_0617: DB 0
+edRW_0618: DB 0
+edRW_0619: DB 0
+edRW_061A: DB 0
+edRW_061B: DB 0
+edRW_061C: DB 0
+edRW_061D: DB 0
+edRW_061E: DB 0
+edRW_061F: DB 0
+edRW_0620: DB 0
+edRW_0621: DB 0
+edLCDC:    DB 0
+edSVBK:    DB 0
+edVBK:     DB 0
+edBCPS:    DB 0
+edOCPS:    DB 0
 
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
-SramToIOMap::
+SRAMtoIOMap::
   DB rAUDENA           & $FF
   DB rAUDTERM          & $FF
   DB rDIV              & $FF
@@ -912,25 +909,7 @@ SramToIOMap::
 
 SaveText:: DB "SAVE"
 
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-  rst $38
-
+SECTION "Bank 0 Code, B", ROM0[$0670]
 VBLInterrupt:
   push af
   push bc
@@ -959,7 +938,7 @@ jr_000_0677:
   call Call_000_0751
   call Call_000_0948
   ld sp, $dfff
-  call Call_000_02a9
+  call SetInterrupts
   jp Jump_000_0a88
 
 
@@ -1426,7 +1405,7 @@ Copy256FromDEtoHL:
 
 
 CopySRAMtoIO:
-  ld hl, SramToIOMap;a table maybe?
+  ld hl, SRAMtoIOMap
   ld bc, _IO
   ld de, $bf00;last 256 bytes of _SRAM
 .loopTable:
@@ -1547,13 +1526,10 @@ REPT 4;multiple cycles to avoid button bounce
   ldh a, [rP1];load dPad
 ENDR
   and a, $F
+  swap a
   ld e, a
   ld a, P1F_GET_BTN
   ldh [rP1], a
-  sla e
-  sla e
-  sla e
-  sla e
 REPT 4
   ldh a, [rP1];load buttons
 ENDR
@@ -1564,14 +1540,13 @@ ENDR
   ld a, P1F_GET_NONE
   ldh [rP1], a
   
-  ; ld hl, wGamepadState
-  ; ld [hl], e;store button state
-
-  ;process keyboard here
+  ld hl, wGamepadState
+  ld [hl], e;store button state
+  nop 
+  nop;to keep InitializeOS at $0a43
   ret
 
-
-InitializeOS:
+InitializeOS::
   ld a, $01
   push af
   inc sp
@@ -1585,31 +1560,29 @@ InitializeOS:
   call Call_000_0d43
   ld a, e
   or a
-  jr z, jr_000_0a66
+  jr z, .mainLoop
 
   push af
   inc sp
   call Call_000_1dd0
   inc sp
+.sinkhole:
+  jr .sinkhole
 
-jr_000_0a64:
-  jr jr_000_0a64
-
-jr_000_0a66:
-  ld hl, $0000
-  push hl
-  ld a, $04
-  push af
-  inc sp
-  call Call_000_048f
-  add sp, $03
-  ld d, e
-  push de
-  inc sp
-  call Call_000_1dd0
-  inc sp
-  jr jr_000_0a66
-
+.mainLoop:
+    ld hl, $0000
+    push hl
+    ld a, $04
+    push af
+    inc sp
+    call Call_000_048f
+    add sp, $03
+    ld d, e
+    push de
+    inc sp
+    call Call_000_1dd0
+    inc sp
+    jr .mainLoop
   ret
 
 OSInitText::
@@ -1787,7 +1760,7 @@ jr_000_0b5e:
   push hl
   call Call_000_2209
   add sp, $02
-  ld de, $0d33
+  ld de, LoadingText
   push de
   call Call_000_2193
   add sp, $02
@@ -1894,7 +1867,7 @@ Jump_000_0c07:
   push hl
   call Call_000_04ba
   add sp, $02
-  ld de, $0d3e
+  ld de, SaveText2
   ld a, $04
   push af
   inc sp
@@ -5556,8 +5529,8 @@ GetInput::;returns buttons in e
 
 .updateGamepad:
   call UpdateInput
-  ld hl, wGamepadState
-  ld [hl], e;store button state
+  call ProcessKeyCodes
+  nop
   ld hl, WaitVBL
   ld a, [hl]
   or a

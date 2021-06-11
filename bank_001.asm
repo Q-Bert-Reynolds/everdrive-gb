@@ -5556,7 +5556,7 @@ Call_001_5abf:
   inc sp
   call Call_000_058c
   inc sp
-  jp Jump_000_0574
+  jp Call_000_0574
 
 
 Call_001_5afb:
@@ -5581,7 +5581,7 @@ Call_001_5afb:
   push de
   call Call_000_05d3
   add sp, $03
-  jp Jump_000_0574
+  jp Call_000_0574
 
 
 Call_001_5b1e:

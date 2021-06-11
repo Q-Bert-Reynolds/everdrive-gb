@@ -97,6 +97,18 @@ rSB EQU $FF01
 ; -- Serial I/O Control (R/W)
 ; --
 rSC EQU $FF02
+; Bit 7 - (T)ransfer Start Flag (0=No transfer is in progress or requested, 1=Transfer in progress, or requested)
+SCF_TRANSFER       EQU %10000000
+SCF_TRANSFER_START EQU SCF_TRANSFER
+SCF_TRANSFER_STOP  EQU 0
+; Bit 1 - Clock (S)peed (0=Normal, 1=Fast) ** CGB Mode Only **
+SCF_SPEED          EQU %00000010
+SCF_SPEED_FAST     EQU SCF_SPEED
+SCF_SPEED_NORMAL   EQU 0
+; Bit 0 - (S)hift Clock (0=External Clock, 1=Internal Clock)
+SCF_CLOCK          EQU %00000001
+SCF_CLOCK_INTERNAL EQU SCF_CLOCK
+SCF_CLOCK_EXTERNAL EQU 0
 
 
 ; --

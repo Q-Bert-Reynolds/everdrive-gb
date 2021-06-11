@@ -14,10 +14,3 @@ wGamepadState EQU $c2b0
   ;$c2b3 selected line?
   ;$c2b5 last button state?
 
-
-;Writable ROM space
-edLCDC         EQU $0622
-edSVBK         EQU $0623
-edVBK          EQU $0624
-edBCPS         EQU $0625
-edOCPS         EQU $0626
