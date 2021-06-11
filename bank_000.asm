@@ -2480,7 +2480,7 @@ Call_000_0f9c:
 
 Call_000_0fcb:
   add sp, -$02
-  ld de, GBSysRegistryBinText+2;$102D
+  ld de, GBSysRegistryBinText;$102D
   ld hl, $0109
   push hl
   ld hl, $c02b
@@ -2569,7 +2569,7 @@ Call_000_1041:
   ld hl, sp+$00
   ld c, l
   ld b, h
-  ld de, GBSysRegistryBinText2+2;$1098
+  ld de, GBSysRegistryBinText2;$1098
   ld hl, $0001
   push hl
   push bc
