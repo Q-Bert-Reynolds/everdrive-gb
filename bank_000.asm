@@ -5483,11 +5483,7 @@ jr_000_1f74:
   add sp, $0f
   ret
 
-UIColors::
-  RGB 5, 5, 6
-  RGB 31, 26, 11
-  RGB 9, 18, 23
-  RGB 31, 31, 29
+UIColors:: INCLUDE "colors.asm"
 
   nop
   nop
