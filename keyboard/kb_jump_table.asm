@@ -16,7 +16,6 @@ DW IGKBHandleCharacter;USB_KEY_COMMA EQU $36 ; Keyboard , and <
 DW IGKBHandleCharacter;USB_KEY_DOT EQU $37 ; Keyboard . and >
 DW IGKBHandleCharacter;USB_KEY_SLASH EQU $38 ; Keyboard / and ?
 DW IGKBHandleCapsLock;USB_KEY_CAPSLOCK EQU $39 ; Keyboard Caps Lock
-DW IGKBHandleError
 DW IGKBHandleFunctionKey;USB_KEY_F1 EQU $3a ; Keyboard F1
 DW IGKBHandleFunctionKey;USB_KEY_F2 EQU $3b ; Keyboard F2
 DW IGKBHandleFunctionKey;USB_KEY_F3 EQU $3c ; Keyboard F3
@@ -29,7 +28,6 @@ DW IGKBHandleFunctionKey;USB_KEY_F9 EQU $42 ; Keyboard F9
 DW IGKBHandleFunctionKey;USB_KEY_F10 EQU $43 ; Keyboard F10
 DW IGKBHandleFunctionKey;USB_KEY_F11 EQU $44 ; Keyboard F11
 DW IGKBHandleFunctionKey;USB_KEY_F12 EQU $45 ; Keyboard F12
-DW IGKBHandleError
 DW IGKBHandlePrintScreen;USB_KEY_SYSRQ EQU $46 ; Keyboard Print Screen
 DW IGKBHandleScrollLock;USB_KEY_SCROLLLOCK EQU $47 ; Keyboard Scroll Lock
 DW IGKBHandlePauseKey;USB_KEY_PAUSE EQU $48 ; Keyboard Pause
@@ -43,7 +41,6 @@ DW IGKBHandleArrowKey;USB_KEY_RIGHT EQU $4f ; Keyboard Right Arrow
 DW IGKBHandleArrowKey;USB_KEY_LEFT EQU $50 ; Keyboard Left Arrow
 DW IGKBHandleArrowKey;USB_KEY_DOWN EQU $51 ; Keyboard Down Arrow
 DW IGKBHandleArrowKey;USB_KEY_UP EQU $52 ; Keyboard Up Arrow
-DW IGKBHandleError
 DW IGKBHandleNumLock;USB_KEY_NUMLOCK EQU $53 ; Keyboard Num Lock and Clear
 DW IGKBHandleCharacter;USB_KEY_KPSLASH EQU $54 ; Keypad /
 DW IGKBHandleCharacter;USB_KEY_KPASTERISK EQU $55 ; Keypad *
@@ -61,7 +58,6 @@ DW IGKBHandleCharacter;USB_KEY_KP8 EQU $60 ; Keypad 8 and Up Arrow
 DW IGKBHandleCharacter;USB_KEY_KP9 EQU $61 ; Keypad 9 and Page Up
 DW IGKBHandleCharacter;USB_KEY_KP0 EQU $62 ; Keypad 0 and Insert
 DW IGKBHandleCharacter;USB_KEY_KPDOT EQU $63 ; Keypad . and Delete
-DW IGKBHandleError
 DW IGKBHandleError;USB_KEY_102ND EQU $64 ; Keyboard Non-US \ and |
 DW IGKBHandleError;USB_KEY_COMPOSE EQU $65 ; Keyboard Application
 DW IGKBHandleError;USB_KEY_POWER EQU $66 ; Keyboard Power

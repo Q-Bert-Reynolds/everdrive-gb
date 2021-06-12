@@ -66,10 +66,13 @@ INCLUDE "keyboard/ps2_handlers.asm"
 INCLUDE "keyboard/igkb_handlers.asm"
 
 USBDelay:
-  xor a
+  ld a, 30
 .loop
     push af
-    call WaitVBL
+    .wait
+      ld a, [rLY]
+      cp a, 144
+      jr nz, .wait
     pop af
     dec a
     jr nz, .loop
@@ -105,7 +108,6 @@ DetectKeyboard::
   ld [rSB], a
   ld a, SCF_TRANSFER_START | SCF_CLOCK_INTERNAL
   ld [rSC], a ;ask for byte using gb clock
-  ld de, 5
   call USBDelay
   ld a, [kb_error]
   cp a, PS2_ERROR_TIMEOUT | PS2_ERROR_PARITY_BIT | PS2_ERROR_FINISH_BIT
@@ -136,7 +138,6 @@ ProcessIGKeyCodes:
   ld [rSB], a
   ld a, SCF_TRANSFER_START | SCF_CLOCK_INTERNAL
   ld [rSC], a ;ask for byte using gb clock
-  ld de, 5
   call USBDelay
   ld a, [rSB]
   and a

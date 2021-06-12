@@ -35,19 +35,20 @@ IGKBHandleCode::;a = scan code
 .handleNumber
   cp a, 123
   jr c, .handleCharacter
-  cp a, 132
+  cp a, 133
   jr nc, .handleCharacter
   sub a, 74
 .handleCharacter
 ; For all other characters, IG does the following to get the keycode:
 ;   ASCIICode += char((unsigned char)HIDCode + (shift ? 61 : 93));
 ; ASCII ends at 127, so anything above that must be readjusted
+  cp a, 128
   jp nc, .handleOther
   call KBHandleCharacter
-.handleOther
-  ;The shift trick that IG does fucks up most special keys.
-  ;assuming that shift key not pressed
-  sub a, 93;HID codes >40
+.handleOther;The shift trick that IG does fucks up most special keys.
+  sub a, 93;assuming that shift key not pressed, we subtract 93
+  push af;save scan code
+  sub a, 41;HID code table starts with 41, so we subtract that too
   ld b, 0
   ld c, a
   ld hl, IGKBJumpTable
@@ -58,6 +59,7 @@ IGKBHandleCode::;a = scan code
   ld a, [hl]
   ld h, a
   ld l, b
+  pop af;scan code
   jp hl
 
 IGKBHandleEnter:
@@ -123,15 +125,27 @@ IGKBHandleArrowKey:
   cp a, b
   jr z, .downPressed
 .rightPressed
+  ld a,[rWX]
+  add a, 8
+  ld [rWX],a
   ld a, PADF_RIGHT
   jp KBHandleArrowKey
 .leftPressed
+  ld a,[rWX]
+  sub a, 8
+  ld [rWX],a
   ld a, PADF_LEFT
   jp KBHandleArrowKey
 .upPressed
+  ld a,[rWY]
+  sub a, 8
+  ld [rWY],a
   ld a, PADF_UP
   jp KBHandleArrowKey
 .downPressed
+  ld a,[rWY]
+  add a, 8
+  ld [rWY],a
   ld a, PADF_DOWN
   jp KBHandleArrowKey
 
