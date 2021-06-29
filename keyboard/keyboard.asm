@@ -43,6 +43,7 @@ SECTION "Keyboard Vars", WRAM0[$cf00]
 ; - some data comes through as USB HID codes
 ; - the rest are incorrectly converted ASCII codes that can sometimes be converted back to HID codes
 
+kb_vars_start:
 kb_scan_code:: DB
 kb_scan_code_buffer:: DS 8;holds last 8 scan codes
 kb_error_buffer:: DS 8;holds last 8 error codes
@@ -56,6 +57,7 @@ kb_flags:: DB;xxxxxxER - (E)xtended key flag, (R)elease key flag
 kb_type:: DB
 kb_mode:: DB
 kb_detected:: DB
+kb_vars_end:
 
 SECTION "Keyboard Code Bank X", ROMX, BANK[1]
 INCLUDE "keyboard/ps2_interrupt.asm"
@@ -64,6 +66,18 @@ INCLUDE "keyboard/kb_handlers.asm"
 INCLUDE "keyboard/ps2_ascii_keymaps.asm"
 INCLUDE "keyboard/ps2_handlers.asm"
 INCLUDE "keyboard/igkb_handlers.asm"
+
+SetupKeyboard::
+  xor a
+  ld c, kb_vars_end - kb_vars_start
+  ld hl, kb_vars_start
+.loop
+    ld [hli], a
+    dec c
+    jr nz, .loop
+  ld a, KB_MODE_BUTTONS
+  ld [kb_mode], a
+  jp SetInterrupts
 
 USBDelay:
   ld a, 30

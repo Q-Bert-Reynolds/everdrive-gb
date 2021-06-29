@@ -92,7 +92,7 @@ InitializeCart::
   ld [$bd07], a
   ld a, $04
   ld [$bd09], a
-  call SetInterrupts
+  call SetupKeyboard
   call InitializeOS
   jr EntryPoint
 
