@@ -8,9 +8,11 @@
   ;  set to %01100001 before setting CPU speed
   ;$bf4d GBC flags
 
+; The calls to $b805 and $a309 are SDCC compiler runtime helpers placed in RAM.
+; (indirect function call trampoline jp hl and math routines) 
 
 ;WRAM
-wGamepadState EQU $c2b0
+DEF wGamepadState EQU $c2b0
   ;$c2b3 selected line?
   ;$c2b5 last button state?
 

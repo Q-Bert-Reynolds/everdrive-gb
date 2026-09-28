@@ -6,7 +6,7 @@ PS2KeyboardInterrupt::
   cp a, KB_TYPE_PS2
   ret nz;if not in PS/2 mode, exit early
 
-  ld a, [rSB]
+  ldh a, [rSB]
   ld b, a;store first 8 bits of scan code (S0123456)
 
 .testStartBit
@@ -18,8 +18,8 @@ PS2KeyboardInterrupt::
   jp .checkAllErrors;bail early if start bit not 0
 
 .waitForLastBits
-  ld a, SCF_TRANSFER_START | SCF_CLOCK_EXTERNAL
-  ld [rSC], a      ;ask for more bits using keyboard clock 
+  ld a, SCF_START | SCF_SOURCE
+  ldh [rSC], a      ;ask for more bits using keyboard clock 
   xor a
   ld [kb_error], a ;reset current error code
   ld a, b          ;S0123456
@@ -30,7 +30,7 @@ PS2KeyboardInterrupt::
   ld c, a          ;expected value after shift
   ld e, 255          ;timer
 .pollBitsLoop
-    ld a, [rSB]
+    ldh a, [rSB]
     ld d, a;actual value
     and a, %11111001;exit condition
     cp a, c;if bits & exit == expected, done
@@ -45,8 +45,8 @@ PS2KeyboardInterrupt::
   
 .allBitsRead
   ld c, d;replace incomplete expected value with actual value (234567PF)
-  ld a, SCF_TRANSFER_STOP | SCF_CLOCK_EXTERNAL
-  ld [rSC], a;stop asking for stuff, use external clock
+  ld a, SCF_SOURCE
+  ldh [rSC], a;stop asking for stuff, use external clock
 
 .testFinishBit
   bit 0, c;test finish bit, should always be 1
@@ -135,7 +135,7 @@ PS2KeyboardInterrupt::
   inc a
   ld [kb_interrupt_count], a
   xor a
-  ld [rSB], a;clear serial bits
-  ld a, SCF_TRANSFER_START | SCF_CLOCK_EXTERNAL
-  ld [rSC], a;start next transfer using external clock
+  ldh [rSB], a;clear serial bits
+  ld a, SCF_START | SCF_SOURCE
+  ldh [rSC], a;start next transfer using external clock
   ret

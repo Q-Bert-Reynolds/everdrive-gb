@@ -2,37 +2,37 @@ INCLUDE "keyboard/usb_hid_keys.asm";USB HID key codes
 INCLUDE "keyboard/ps2_keys.asm";PS/2 keys codes
 
 ;kb_type
-KB_TYPE_NONE EQU 0
-KB_TYPE_PS2  EQU 1
-KB_TYPE_IGKB EQU 2
+DEF KB_TYPE_NONE EQU 0
+DEF KB_TYPE_PS2  EQU 1
+DEF KB_TYPE_IGKB EQU 2
 
 ;kb_mode
-KB_MODE_NONE    EQU 0
-KB_MODE_BUTTONS EQU 1
-KB_MODE_TYPING  EQU 2
+DEF KB_MODE_NONE    EQU 0
+DEF KB_MODE_BUTTONS EQU 1
+DEF KB_MODE_TYPING  EQU 2
 
 ;kb_error
-PS2_ERROR_TIMEOUT      EQU %100000
-PS2_ERROR_UNKNOWN_CODE EQU %010000
-PS2_ERROR_KEYBOARD     EQU %001000
-PS2_ERROR_START_BIT    EQU %000100
-PS2_ERROR_PARITY_BIT   EQU %000010
-PS2_ERROR_FINISH_BIT   EQU %000001
+DEF PS2_ERROR_TIMEOUT      EQU %100000
+DEF PS2_ERROR_UNKNOWN_CODE EQU %010000
+DEF PS2_ERROR_KEYBOARD     EQU %001000
+DEF PS2_ERROR_START_BIT    EQU %000100
+DEF PS2_ERROR_PARITY_BIT   EQU %000010
+DEF PS2_ERROR_FINISH_BIT   EQU %000001
 
-KB_FLAG_RELEASE  EQU %00000001 ;$PS2 code $F0
-KB_FLAG_EXTENDED EQU %00000010 ;$PS2 code $E0
+DEF KB_FLAG_RELEASE  EQU %00000001 ;$PS2 code $F0
+DEF KB_FLAG_EXTENDED EQU %00000010 ;$PS2 code $E0
 
 ;kb_modifiers
-KB_MOD_SCROLL_LOCK EQU PS2_LED_SCROLL_LOCK;001
-KB_MOD_NUM_LOCK    EQU PS2_LED_NUM_LOCK   ;010
-KB_MOD_CAPS_LOCK   EQU PS2_LED_CAPS_LOCK  ;100
-KB_MOD_SUPER       EQU %00001000
-KB_MOD_ALT         EQU %00010000
-KB_MOD_CTRL        EQU %00100000
-KB_MOD_SHIFT       EQU %01000000
-KB_MOD_FUNCTION    EQU %10000000
+DEF KB_MOD_SCROLL_LOCK EQU PS2_LED_SCROLL_LOCK;001
+DEF KB_MOD_NUM_LOCK    EQU PS2_LED_NUM_LOCK   ;010
+DEF KB_MOD_CAPS_LOCK   EQU PS2_LED_CAPS_LOCK  ;100
+DEF KB_MOD_SUPER       EQU %00001000
+DEF KB_MOD_ALT         EQU %00010000
+DEF KB_MOD_CTRL        EQU %00100000
+DEF KB_MOD_SHIFT       EQU %01000000
+DEF KB_MOD_FUNCTION    EQU %10000000
 
-SECTION "Keyboard Vars", WRAM0[$cf00]
+SECTION "Keyboard Vars", WRAM0
 ;PS/2 scan codes are 11 bits (S0123456 7PFxxxxx):
 ; - (S)tart (always 0)
 ; - Data Bits (0-7) in reverse order
@@ -119,9 +119,9 @@ DetectKeyboard::
   ld a, KB_TYPE_PS2
   ld [kb_type], a;assume PS2 keyboard connected
   xor a
-  ld [rSB], a
-  ld a, SCF_TRANSFER_START | SCF_CLOCK_INTERNAL
-  ld [rSC], a ;ask for byte using gb clock
+  ldh [rSB], a
+  ld a, SCF_START | SCF_SOURCE
+  ldh [rSC], a ;ask for byte using gb clock
   call USBDelay
   ld a, [kb_error]
   cp a, PS2_ERROR_TIMEOUT | PS2_ERROR_PARITY_BIT | PS2_ERROR_FINISH_BIT
@@ -130,8 +130,8 @@ DetectKeyboard::
   ld [kb_type], a
   ret
 .usePS2Clock
-  ld a, SCF_TRANSFER_START | SCF_CLOCK_EXTERNAL
-  ld [rSC], a;ask for bits using keyboard clock 
+  ld a, SCF_START
+  ldh [rSC], a;ask for bits using keyboard clock 
   ret
 
 ProcessKeyCodes::
@@ -149,11 +149,11 @@ ProcessKeyCodes::
 
 ProcessIGKeyCodes:
   xor a
-  ld [rSB], a
-  ld a, SCF_TRANSFER_START | SCF_CLOCK_INTERNAL
-  ld [rSC], a ;ask for byte using gb clock
+  ldh [rSB], a
+  ld a, SCF_START | SCF_SOURCE
+  ldh [rSC], a ;ask for byte using gb clock
   call USBDelay
-  ld a, [rSB]
+  ldh a, [rSB]
   and a
   ret z
   cp a, $FF

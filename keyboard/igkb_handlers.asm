@@ -2,22 +2,22 @@ IGKBHandleCode::;a = scan code
 .handleSpace
   cp a, 137
   jr nz, .handlePeriod
-  ld a, " "
+  ld a, ' '
   jp KBHandleCharacter
 .handlePeriod
   cp a, 148
   jr nz, .handleApostrophe
-  ld a, "."
+  ld a, '.'
   jp KBHandleCharacter
 .handleApostrophe
   cp a, 145
   jr nz, .handleComma
-  ld a, "'"
+  ld a, '\''
   jp KBHandleCharacter
 .handleComma
   cp a, 147
   jr nz, .handleEnter
-  ld a, ","
+  ld a, ','
   jp KBHandleCharacter
 .handleEnter
   cp a, 133
@@ -30,7 +30,7 @@ IGKBHandleCode::;a = scan code
 .handleZero
   cp a, 132
   jr nz, .handleNumber
-  ld a, "0"
+  ld a, '0'
   call KBHandleCharacter
 .handleNumber
   cp a, 123
@@ -125,27 +125,27 @@ IGKBHandleArrowKey:
   cp a, b
   jr z, .downPressed
 .rightPressed
-  ld a,[rWX]
+  ldh a,[rWX]
   add a, 8
-  ld [rWX],a
+  ldh [rWX],a
   ld a, PADF_RIGHT
   jp KBHandleArrowKey
 .leftPressed
-  ld a,[rWX]
+  ldh a,[rWX]
   sub a, 8
-  ld [rWX],a
+  ldh [rWX],a
   ld a, PADF_LEFT
   jp KBHandleArrowKey
 .upPressed
-  ld a,[rWY]
+  ldh a,[rWY]
   sub a, 8
-  ld [rWY],a
+  ldh [rWY],a
   ld a, PADF_UP
   jp KBHandleArrowKey
 .downPressed
-  ld a,[rWY]
+  ldh a,[rWY]
   add a, 8
-  ld [rWY],a
+  ldh [rWY],a
   ld a, PADF_DOWN
   jp KBHandleArrowKey
 

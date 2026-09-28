@@ -1,8 +1,8 @@
-RGB: MACRO ;\1 = red, \2 = green, \3 = blue
+MACRO RGB ;\1 = red, \2 = green, \3 = blue
   DW (\3 << 10 | \2 << 5 | \1)
 ENDM
 
-ld_long: MACRO
+MACRO ld_long 
     IF STRLWR("\1") == "a"
         ; ld a, [$ff40]
         db $FA
