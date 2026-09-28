@@ -75,10 +75,10 @@ SECTION "Bank 0 Code, A", ROM0[$0280]
 EntryPoint:
   di
   ld sp, $dfff
-  ld a, $a5
-  ld [$bd0a], a
+  ld a, EDGB_UNLOCK_KEY
+  ld [sEDGBUnlock], a; Unlock EverDrive FPGA hardware registers ($A5 is the unlock key)
+  
   ld a, [CartSwitch]
-
 CheckCartSwitch:
   and a
   jr nz, CartSwitchPressed
@@ -89,146 +89,164 @@ InitializeCart::
   ld [kb_detected], a
   ldh [rSVBK], a
   ldh [rVBK], a
-  ld [$bd07], a
+  ld [sCartMapperMode], a; Cartridge mapper mode
   ld a, $04
-  ld [$bd09], a
+  ld [sRegBD09], a
   call SetupKeyboard
   call InitializeOS
   jr EntryPoint
 
 SetInterrupts::;probably not the only thing this does
   ld a, $04
-  ld [$bd06], a
+  ld [sStreamingConfig], a
   ld a, IEF_SERIAL
   ldh [rIE], a;enable serial interrupt
   xor a
-  ld [$bd01], a
+  ld [sSPIControl], a; SPI Control: Assert CS (0), fast speed (0), auto-read disabled (0)
   ld a, $04
-  ld [$bd08], a
+  ld [sCurrentBank], a; Select OS SRAM Bank 4
   ret
 
 CartSwitchPressed:
   xor a
   ld [CartSwitch], a
   ld a, $10
-  ld [$bd06], a
+  ld [sStreamingConfig], a
 
 LoopForever:
   jr LoopForever
 
-Call_000_02c8:
+; ==============================================================================
+; SD Card SPI Low-Level Routines ($BD00-$BD01)
+; ==============================================================================
+
+; Send byte in [sp+$02] over SPI, wait for completion, and return received byte in E
+SD_SPI_TransferByte::
   ld hl, sp+$02
   ld a, [hl]
-  ld [$bd00], a
+  ld [sSPIData], a; Write to SPI data register
 
-jr_000_02ce:
-  ld a, [$bd01]
-  and $80
-  jr nz, jr_000_02ce
+.wait:
+  ld a, [sSPIControl]
+  and $80              ; Bit 7 = SPI busy flag
+  jr nz, .wait
 
-  ld a, [$bd00]
+  ld a, [sSPIData]; Read received byte from SPI data register
   ld e, a
   ret
 
 
-Call_000_02da:
+; Write byte in [sp+$02] to SPI, then immediately read back into E (no busy polling)
+SD_SPI_WriteReadByte::
   ld hl, sp+$02
   ld a, [hl]
-  ld [$bd00], a
-  ld a, [$bd00]
+  ld [sSPIData], a
+  ld a, [sSPIData]
   ld e, a
   ret
 
 
-Call_000_02e5:
+; Write byte in [sp+$02] to SPI (fire-and-forget, no read)
+SD_SPI_WriteByte::
   ld hl, sp+$02
   ld a, [hl]
-  ld [$bd00], a
+  ld [sSPIData], a
   ret
 
 
-Call_000_02ec:
-  ld a, [$bd01]
-  and $fe
-  ld [$bd01], a
+; Assert SD Chip Select (CS active low: clear bit 0 of $BD01)
+SD_AssertCS::
+  ld a, [sSPIControl]
+  and $fe              ; Clear bit 0
+  ld [sSPIControl], a
   ret
 
 
-Call_000_02f5:
-  ld a, [$bd01]
-  or $01
-  ld [$bd01], a
+; Deassert SD Chip Select (CS inactive high: set bit 0 of $BD01)
+SD_DeassertCS::
+  ld a, [sSPIControl]
+  or $01               ; Set bit 0
+  ld [sSPIControl], a
   ret
 
 
-Call_000_02fe:
-  ld a, [$bd01]
-  or $02
-  ld [$bd01], a
+; Set slow SPI clock (~400 kHz) for SD initialization (set bit 1 of $BD01)
+SD_SetSPISlow::
+  ld a, [sSPIControl]
+  or $02               ; Set bit 1
+  ld [sSPIControl], a
   ret
 
 
-Call_000_0307:
-  ld a, [$bd01]
-  and $fd
-  ld [$bd01], a
-  ld a, [$bd06]
-  and $fe
-  ld [$bd06], a
+; Set fast SPI clock (full speed) for data transfers (clear bit 1 of $BD01 & bit 0 of $BD06)
+SD_SetSPIFast::
+  ld a, [sSPIControl]
+  and $fd              ; Clear bit 1
+  ld [sSPIControl], a
+  ld a, [sStreamingConfig]
+  and $fe              ; Clear bit 0
+  ld [sStreamingConfig], a
   ret
 
 
-Call_000_0318:
-  ld a, [$bd01]
-  and $fb
-  ld [$bd01], a
-  ld a, [$bd06]
-  and $fe
-  ld [$bd06], a
+; Disable auto-read SPI streaming mode (clear bit 2 of $BD01 & bit 0 of $BD06)
+SD_DisableAutoRead::
+  ld a, [sSPIControl]
+  and $fb              ; Clear bit 2
+  ld [sSPIControl], a
+  ld a, [sStreamingConfig]
+  and $fe              ; Clear bit 0
+  ld [sStreamingConfig], a
   ret
 
 
-Call_000_0329:
-  ld a, [$bd01]
-  or $04
-  ld [$bd01], a
-  ld a, [$bd06]
-  or $01
-  ld [$bd06], a
+; Enable auto-read SPI streaming mode (set bit 2 of $BD01 & bit 0 of $BD06)
+; In this mode, reading $BD00 automatically clocks the next byte over SPI.
+SD_EnableAutoRead::
+  ld a, [sSPIControl]
+  or $04               ; Set bit 2
+  ld [sSPIControl], a
+  ld a, [sStreamingConfig]
+  or $01               ; Set bit 0
+  ld [sStreamingConfig], a
   ret
 
 
-Call_000_033a:
-  ld a, [$bd02]
+; Increment 512-byte sector buffer window pointer ($BD02)
+Cart_IncSectorPointer::
+  ld a, [sBufferSectorLow]
   inc a
-  ld [$bd02], a
+  ld [sBufferSectorLow], a
   ret
 
 
-Call_000_0342:
+; Set 512-byte sector buffer window pointer ($BD02/$BD03) from [HL]
+Cart_SetSectorPointer::
   ld a, [hl+]
-  ld [$bd02], a
+  ld [sBufferSectorLow], a
   ld a, [hl]
-  ld [$bd03], a
+  ld [sBufferSectorHigh], a
   ret
 
 
-Call_000_034b:
+; Read C sectors into the cartridge 512-byte buffer window at $BE00
+; Stack arguments: sector pointer, sector count C
+SD_ReadSectorsToBufferWindow::
   pop de
   pop hl
   pop bc
   push bc
   push hl
   push de
-  call Call_000_0342
-  call Call_000_0329
-  ld de, $bd00
+  call Cart_SetSectorPointer
+  call SD_EnableAutoRead
+  ld de, sSPIData
 
 jr_000_035a:
   ld a, [de]
-  call Call_000_043a
-  ld hl, $be00
-  ld b, $40
+  call SD_WaitForDataToken ; Wait for $FE data start token
+  ld hl, sBufferWindow
+  ld b, $40                ; 64 iterations * 8 bytes = 512 bytes
 
 jr_000_0363:
   ld [hl+], a
@@ -242,72 +260,76 @@ jr_000_0363:
   dec b
   jr nz, jr_000_0363
 
-  ld a, [de]
-  call Call_000_033a
+  ld a, [de]               ; Read CRC byte
+  call Cart_IncSectorPointer
   dec c
   jr nz, jr_000_035a
 
-  call Call_000_0318
+  call SD_DisableAutoRead
   ld e, $00
   ret
 
 
-Call_000_037b:
+; Read C sectors (512 bytes each) directly into RAM buffer pointed by HL
+SD_ReadSectorsToRAM::
   pop de
   pop hl
   pop bc
   push bc
   push hl
   push de
-  call Call_000_0329
-  ld de, $bd00
+  call SD_EnableAutoRead
+  ld de, sSPIData
   ld b, $00
 
 jr_000_0389:
   ld a, [de]
-  call Call_000_043a
+  call SD_WaitForDataToken ; Wait for $FE data start token
 
 jr_000_038d:
-  ld a, [de]
+  ld a, [de]               ; Auto-clock read next byte
   ld [hl+], a
   ld a, [de]
   ld [hl+], a
-  dec b
+  dec b                    ; 256 * 2 = 512 bytes
   jr nz, jr_000_038d
 
-  ld a, [de]
+  ld a, [de]               ; Read CRC byte
   dec c
   jr nz, jr_000_0389
 
-  call Call_000_0318
+  call SD_DisableAutoRead
   ld e, $00
   ret
 
 
-Call_000_039e:
+; Write C sectors from cartridge buffer window ($BE00) to SD
+SD_WriteSectorsFromBufferWindow::
   pop de
   pop hl
   pop bc
   push bc
   push hl
   push de
-  call Call_000_0342
-  ld hl, $be00
+  call Cart_SetSectorPointer
+  ld hl, sBufferWindow
 
 jr_000_03aa:
-  call Call_000_03d2
+  call SD_WriteSingleBlock
   ld a, e
   cp $00
   jp nz, Jump_000_0439
 
-  ld hl, $be00
-  call Call_000_033a
+  ld hl, sBufferWindow
+  call Cart_IncSectorPointer
   dec c
   jr nz, jr_000_03aa
 
-  jr jr_000_040b
+  jr SD_SendStopTransferToken
 
-Call_000_03be:
+
+; Write C sectors from RAM buffer [HL] to SD
+SD_WriteSectorsFromRAM::
   pop de
   pop hl
   pop bc
@@ -316,7 +338,7 @@ Call_000_03be:
   push de
 
 jr_000_03c4:
-  call Call_000_03d2
+  call SD_WriteSingleBlock
   ld a, e
   cp $00
   jp nz, Jump_000_0439
@@ -324,15 +346,18 @@ jr_000_03c4:
   dec c
   jr nz, jr_000_03c4
 
-  jr jr_000_040b
+  jr SD_SendStopTransferToken
 
-Call_000_03d2:
+
+; Write a single 512-byte block from [HL] to SD card via SPI
+; Returns E = 0 on success, or error code in E ($D5, $D6, $D7)
+SD_WriteSingleBlock::
   ld b, $00
-  ld de, $bd00
+  ld de, sSPIData
   ld a, $ff
   ld [de], a
   ld [de], a
-  ld a, $fc
+  ld a, $fc                ; Start Block Token for Multiple Block Write (CMD25)
   ld [de], a
 
 jr_000_03de:
@@ -340,25 +365,25 @@ jr_000_03de:
   ld [de], a
   ld a, [hl+]
   ld [de], a
-  dec b
+  dec b                    ; 256 * 2 = 512 bytes
   jr nz, jr_000_03de
 
   ld a, $ff
+  ld [de], a               ; Dummy CRC byte 1
+  ld [de], a               ; Dummy CRC byte 2
   ld [de], a
-  ld [de], a
-  ld [de], a
-  ld a, [de]
+  ld a, [de]               ; Data response token
   and $1f
-  cp $05
-  jr nz, jr_000_0431
+  cp $05                   ; 0x05 = Data accepted
+  jr nz, SD_DataTokenError
 
   ld de, $0000
 
 jr_000_03f4:
   ld a, $ff
-  ld [$bd00], a
-  ld a, [$bd00]
-  cp $ff
+  ld [sSPIData], a
+  ld a, [sSPIData]
+  cp $ff                   ; Busy line held low; 0xFF = ready
   jr z, jr_000_0408
 
   dec d
@@ -367,24 +392,24 @@ jr_000_03f4:
   dec e
   jr nz, jr_000_03f4
 
-  jr jr_000_0434
+  jr SD_WaitTimeoutError
 
 jr_000_0408:
   ld e, $00
   ret
 
-
-jr_000_040b:
-  ld a, $fd
-  ld [$bd00], a
+; Send Stop Tran token ($FD) after multi-block write
+SD_SendStopTransferToken:
+  ld a, $fd                ; Stop Tran token
+  ld [sSPIData], a
   ld a, $ff
-  ld [$bd00], a
+  ld [sSPIData], a
   ld de, $0000
 
 jr_000_0418:
   ld a, $ff
-  ld [$bd00], a
-  ld a, [$bd00]
+  ld [sSPIData], a
+  ld a, [sSPIData]
   and $01
   cp $00
   jr nz, jr_000_042e
@@ -395,37 +420,35 @@ jr_000_0418:
   inc e
   jr nz, jr_000_0418
 
-  jr jr_000_0437
+  jr SD_StopTransferTimeoutError
 
 jr_000_042e:
   ld e, $00
   ret
 
-
-jr_000_0431:
-  ld e, $d5
+SD_DataTokenError:
+  ld e, $d5                ; Error $D5: Write data token error
   ret
 
-
-jr_000_0434:
-  ld e, $d6
+SD_WaitTimeoutError:
+  ld e, $d6                ; Error $D6: Write wait timeout
   ret
 
-
-jr_000_0437:
-  ld e, $d7
-
+SD_StopTransferTimeoutError:
+  ld e, $d7                ; Error $D7: Stop tran timeout
 Jump_000_0439:
   ret
 
 
-Call_000_043a:
+; Wait for Start Block Token ($FE) from SD card
+; Returns with A = $FE on success; times out with E = $D3 on failure
+SD_WaitForDataToken::
   push bc
   ld bc, $0000
 
 jr_000_043e:
-  ld a, [$bd00]
-  cp $fe
+  ld a, [sSPIData]
+  cp $fe                   ; 0xFE = Data start block token
   jr z, jr_000_0451
 
   dec c
@@ -434,24 +457,25 @@ jr_000_043e:
   dec b
   jr nz, jr_000_043e
 
-  call Call_000_0318
+  call SD_DisableAutoRead
   pop bc
-  ld e, $d3
+  ld e, $d3                ; Error $D3: Read data token timeout
 
 jr_000_0451:
   pop bc
   ret
 
 
-Call_000_0453:
+; Launch game by configuring mapper in $BD07 and switching to bank 1
+Cart_LaunchGame::
   pop de
   pop de
-  ld a, [$bd06]
+  ld a, [sStreamingConfig]
   and $20
   or $08
-  ld [$bd06], a
+  ld [sStreamingConfig], a
   ld a, $00
-  ld [$bd09], a
+  ld [sRegBD09], a
   ld a, $00
   ld [rRAMG], a
   ld [rROMB1], a
@@ -461,7 +485,7 @@ Call_000_0453:
   ld [$2100], a
   ld [rROMB0], a
   ld a, e
-  ld [$bd07], a
+  ld [sCartMapperMode], a        ; Configure target mapper mode (MBC1, MBC3, MBC5, etc.)
 
 Jump_000_047e:
   jp Jump_000_047e
@@ -470,55 +494,58 @@ Jump_000_047e:
 Call_000_0481:
   ld hl, sp+$02
   ld a, [hl]
-  ld [$bd04], a
+  ld [sRegBD04], a
   ret
 
 
 Call_000_0488:
   ld hl, sp+$02
   ld a, [hl]
-  ld [$bd05], a
+  ld [sRegBD05], a
   ret
 
 
-Call_000_048f:
+; Far call to function in specified OS SRAM bank ($A000-$BFFF)
+; Arguments on stack: bank number (1 byte), function pointer (2 bytes)
+OS_CallFarSRAM::
   ld hl, sp+$02
-  ld a, [$bd08]
-  push af
-  ld a, [hl]
-  ld [$bd08], a
+  ld a, [sCurrentBank]        ; Current SRAM bank
+  push af              ; Save current bank
+  ld a, [hl]           ; Target bank
+  ld [sCurrentBank], a        ; Switch to target bank
   ld hl, sp+$05
   ld e, [hl]
   inc hl
   ld d, [hl]
   push de
-  call _SRAM;This looks important.
+  call _SRAM           ; Call function in SRAM ($A000)
   pop af
   pop af
-  ld [$bd08], a
+  ld [sCurrentBank], a        ; Restore previous SRAM bank
   ret
 
 
 Call_000_04a8:
-  ld a, [$bd06]
+  ld a, [sStreamingConfig]
   and $fd
-  ld [$bd06], a
+  ld [sStreamingConfig], a
   ret
 
 
 Call_000_04b1:
-  ld a, [$bd06]
+  ld a, [sStreamingConfig]
   or $02
-  ld [$bd06], a
+  ld [sStreamingConfig], a
   ret
 
 
-Call_000_04ba:
+; Set 512-byte sector buffer window pointer ($BD02/$BD03) from stack argument
+Cart_SetSectorPointerFromStack::
   ld hl, sp+$02
   ld a, [hl+]
-  ld [$bd02], a
+  ld [sBufferSectorLow], a
   ld a, [hl]
-  ld [$bd03], a
+  ld [sBufferSectorHigh], a
   ret
 
 
@@ -528,12 +555,12 @@ Call_000_04c5:
   push de
   push hl
   ld a, $00
-  ld [$bd02], a
-  ld [$bd03], a
+  ld [sBufferSectorLow], a
+  ld [sBufferSectorHigh], a
 
 jr_000_04d1:
   ld a, $ff
-  ld hl, $be00
+  ld hl, sBufferWindow
 
 jr_000_04d6:
   cp [hl]
@@ -551,9 +578,9 @@ jr_000_04dd:
   inc l
   jr nz, jr_000_04dd
 
-  ld a, [$bd02]
+  ld a, [sBufferSectorLow]
   inc a
-  ld [$bd02], a
+  ld [sBufferSectorLow], a
   dec e
   jr nz, jr_000_04d1
 
@@ -572,12 +599,12 @@ Call_000_04f3:
   push de
   push hl
   ld a, $00
-  ld [$bd02], a
-  ld [$bd03], a
+  ld [sBufferSectorLow], a
+  ld [sBufferSectorHigh], a
 
 jr_000_04ff:
   ld a, $ff
-  ld hl, $be00
+  ld hl, sBufferWindow
 
 jr_000_0504:
   ld [hl], a
@@ -591,21 +618,22 @@ jr_000_0509:
   inc l
   jr nz, jr_000_0509
 
-  ld a, [$bd02]
+  ld a, [sBufferSectorLow]
   inc a
-  ld [$bd02], a
+  ld [sBufferSectorLow], a
   dec e
   jr nz, jr_000_04ff
 
   ret
 
 
-Call_000_0518:
+; Copy 512 bytes from buffer window ($BE00) to RAM buffer [HL]
+BufferWindow_CopyToHL::
   pop de
   pop hl
   push hl
   push de
-  ld de, $be00
+  ld de, sBufferWindow
 
 jr_000_051f:
   ld a, [de]
@@ -624,12 +652,13 @@ jr_000_0525:
   ret
 
 
-Call_000_052b:
+; Copy 512 bytes from RAM buffer [HL] to buffer window ($BE00)
+BufferWindow_CopyFromHL::
   pop de
   pop hl
   push hl
   push de
-  ld de, $be00
+  ld de, sBufferWindow
 
 jr_000_0532:
   ld a, [hl+]
@@ -674,55 +703,65 @@ SetCPUSpeedSlow:
   ret
 
 
-Call_000_055b:
-  ld a, [$bd0c]
+; ==============================================================================
+; I2C Bus Routines ($BD0C-$BD0D) - Used for on-cart RTC and EEPROM/FRAM
+; ==============================================================================
+
+; Wait for I2C busy flag in $BD0C (bit 7) to clear
+I2C_WaitBusy::
+  ld a, [sI2CInterfaceC]
   and $80
-  jr nz, Call_000_055b
+  jr nz, I2C_WaitBusy
 
   ret
 
 
-Call_000_0563:
+; Send I2C START condition
+I2C_Start::
   ld a, $20
-  ld [$bd0c], a
-  ld [$bd0d], a
-  call Call_000_055b
+  ld [sI2CInterfaceC], a
+  ld [sI2CInterfaceD], a
+  call I2C_WaitBusy
   ld a, $11
-  ld [$bd0c], a
+  ld [sI2CInterfaceC], a
   ret
 
 
-Call_000_0574:
+; Reset I2C bus
+I2C_ResetBus::
   ld a, $30
-  ld [$bd0c], a
-  ld [$bd0d], a
-  call Call_000_055b
+  ld [sI2CInterfaceC], a
+  ld [sI2CInterfaceD], a
+  call I2C_WaitBusy
   ret
 
 
-Call_000_0580:
+; Send I2C ACK
+I2C_Ack::
   ld a, $10
-  ld [$bd0c], a
+  ld [sI2CInterfaceC], a
   ret
 
 
-Call_000_0586:
+; Send I2C STOP condition
+I2C_Stop::
   ld a, $11
-  ld [$bd0c], a
+  ld [sI2CInterfaceC], a
   ret
 
 
-Call_000_058c:
+; Write byte [sp+$02] to I2C bus, wait for busy to clear, return ACK bit in E
+I2C_WriteByte::
   ld hl, sp+$02
   ld a, [hl]
-  ld [$bd0d], a
+  ld [sI2CInterfaceD], a
 
 jr_000_0592:
-  ld a, [$bd0c]
+  ld a, [sI2CInterfaceC]
   and $80
   jr nz, jr_000_0592
 
-  ld a, [$bd0c]
+  ld a, [sI2CInterfaceC]
   and $01
   ld e, a
   ret
@@ -730,24 +769,25 @@ jr_000_0592:
 
   ld hl, sp+$02
   ld a, [hl]
-  ld [$bd0d], a
-  call Call_000_055b
-  ld a, [$bd0d]
+  ld [sI2CInterfaceD], a
+  call I2C_WaitBusy
+  ld a, [sI2CInterfaceD]
   ld e, a
   ret
 
 
-  ld a, [$bd0c]
+  ld a, [sI2CInterfaceC]
   and $01
   ld e, a
   ret
 
 
-Call_000_05b5:
+; Read DE bytes from I2C into buffer [HL]
+I2C_ReadBytes::
   pop hl
   pop hl
   pop de
-  ld bc, $bd0d
+  ld bc, sI2CInterfaceD
   add sp, -$06
 
 jr_000_05bd:
@@ -756,7 +796,7 @@ jr_000_05bd:
   dec de
 
 jr_000_05c1:
-  ld a, [$bd0c]
+  ld a, [sI2CInterfaceC]
   and $80
   jr nz, jr_000_05c1
 
@@ -772,16 +812,17 @@ jr_000_05c1:
   ret
 
 
-Call_000_05d3:
+; Write E bytes from buffer [HL] to I2C bus
+I2C_WriteBytes::
   pop hl
   pop hl
   pop de
-  ld bc, $bd0c
+  ld bc, sI2CInterfaceC
   add sp, -$06
 
 jr_000_05db:
   ld a, [hl+]
-  ld [$bd0d], a
+  ld [sI2CInterfaceD], a
 
 jr_000_05df:
   ld a, [bc]
@@ -795,34 +836,34 @@ jr_000_05df:
 
 
 Call_000_05e8:
-  ld a, [$bd0e]
+  ld a, [sI2CInterfaceE]
   ld e, a
   ret
 
 
 Call_000_05ed:
-  ld a, [$bd06]
+  ld a, [sStreamingConfig]
   and $df
-  ld [$bd06], a
+  ld [sStreamingConfig], a
   ret
 
 
 Call_000_05f6:
-  ld a, [$bd06]
+  ld a, [sStreamingConfig]
   or $20
-  ld [$bd06], a
+  ld [sStreamingConfig], a
   ret
 
 
 Call_000_05ff:
   ld a, $01
-  ld [$bd0f], a
+  ld [sI2CInterfaceF], a
   ret
 
 
 Call_000_0605:
   ld a, $00
-  ld [$bd0f], a
+  ld [sI2CInterfaceF], a
   ret
 
 SECTION "Bank 0 R/W Data $060b", ROM0[$060b]
@@ -917,12 +958,10 @@ VBLInterrupt:
   push de
   push hl
   di
-  ld a, $a5
-
-jr_000_0677:
-  ld [$bd0a], a
+  ld a, EDGB_UNLOCK_KEY
+  ld [sEDGBUnlock], a
   ld a, $04
-  ld [$bd06], a
+  ld [sStreamingConfig], a
   ld [$0620], sp
   ld sp, $066e
   call StoreScreenSettings
@@ -932,7 +971,7 @@ jr_000_0677:
   and $01
   ldh [rSVBK], a
   ld a, $3e
-  ld [$bd03], a
+  ld [sBufferSectorHigh], a
   call Call_000_06af
   call Call_000_06e3
   call Call_000_0713
@@ -945,9 +984,9 @@ jr_000_0677:
 
 Call_000_06af:
   ld a, $40
-  ld [$bd02], a
+  ld [sBufferSectorLow], a
   call Call_000_09af
-  ld hl, $be00
+  ld hl, sBufferWindow
   ld a, [SaveText];[$065a]
   ld [hl+], a
   ld a, [SaveText+1]
@@ -973,7 +1012,7 @@ Call_000_06af:
 
 Call_000_06e3:
   ld a, $41
-  ld [$bd02], a
+  ld [sBufferSectorLow], a
   ld de, _VRAM
   ld c, $10
   call CopyDEtoEndOfSRAM
@@ -1012,7 +1051,7 @@ jr_000_071d:
   ld hl, _RAM
   ld c, $10
   call CopyEndOfSRAMtoHL
-  ld a, [$bd02]
+  ld a, [sBufferSectorLow]
   sub $10
   add $62
   ld d, $3e
@@ -1022,7 +1061,7 @@ jr_000_071d:
   ld de, _RAM
   ld c, $10
   call CopyDEtoEndOfSRAM
-  ld a, [$bd02]
+  ld a, [sBufferSectorLow]
   sub $62
   ld d, $00
   ld e, a
@@ -1035,10 +1074,10 @@ jr_000_071d:
 
 Call_000_0751:
   ld a, $a2
-  ld [$bd02], a
+  ld [sBufferSectorLow], a
   call Call_000_09af
   call Call_000_07af
-  ld hl, $be00
+  ld hl, sBufferWindow
 
 jr_000_075f:
   ld a, l
@@ -1095,9 +1134,9 @@ jr_000_07a5:
 
 CopyDEtoBD02:
   ld a, d
-  ld [$bd03], a
+  ld [sBufferSectorHigh], a
   ld a, e
-  ld [$bd02], a
+  ld [sBufferSectorLow], a
   ret
 
 
@@ -1128,9 +1167,9 @@ Call_000_07ce:
   di
   ld sp, $066e
   ld a, $04
-  ld [$bd06], a
+  ld [sStreamingConfig], a
   ld a, $3e
-  ld [$bd03], a
+  ld [sBufferSectorHigh], a
   call Call_000_0948
   call Call_000_086c
   call Call_000_0844
@@ -1144,9 +1183,9 @@ Call_000_07ce:
 
 jr_000_07f7:
   ld a, $02
-  ld [$bd09], a
+  ld [sRegBD09], a
   ld a, $00
-  ld [$bd09], a
+  ld [sRegBD09], a
   pop hl
   pop de
   pop bc
@@ -1162,9 +1201,9 @@ jr_000_07f7:
 
 Call_000_0814:
   ld a, $40
-  ld [$bd02], a
+  ld [sBufferSectorLow], a
   ld a, $00
-  ld [$bd06], a
+  ld [sStreamingConfig], a
   ld a, [$be05]
   ld h, a
   ld a, [$be04]
@@ -1186,7 +1225,7 @@ Call_000_0814:
 
 Call_000_0844:
   ld a, $41
-  ld [$bd02], a
+  ld [sBufferSectorLow], a
   ld hl, _VRAM
   ld c, $10
   call CopyEndOfSRAMtoHL
@@ -1194,7 +1233,7 @@ Call_000_0844:
   ld c, $10
   call CopyEndOfSRAMtoHL
   ld hl, _OAMRAM
-  ld de, $be00
+  ld de, sBufferWindow
   ;call Copy256FromDEtoHL;this call was missing, but I'm pretty sure it was supposed to be here
   ld hl, _HRAM
   ld de, $bf80
@@ -1216,7 +1255,7 @@ jr_000_0876:
   ld hl, _RAM
   ld c, $10
   call CopyEndOfSRAMtoHL
-  ld a, [$bd02]
+  ld a, [sBufferSectorLow]
   sub $72
   ld d, $00
   ld e, a
@@ -1225,7 +1264,7 @@ jr_000_0876:
   ld de, _RAM
   ld c, $10
   call CopyDEtoEndOfSRAM
-  ld a, [$bd02]
+  ld a, [sBufferSectorLow]
   add $62
   ld d, $3e
   ld e, a
@@ -1234,7 +1273,7 @@ jr_000_0876:
   jr nz, jr_000_0876
 
   ld a, $3e
-  ld [$bd03], a
+  ld [sBufferSectorHigh], a
   call Call_000_04a8
   ret
 
@@ -1243,8 +1282,8 @@ Call_000_08b0:
   ldh a, [rIE]
   ld b, a
   ld a, $61
-  ld [$bd02], a
-  ld a, [$bf4d]
+  ld [sBufferSectorLow], a
+  ld a, [sGBCFlags]
   and $80
   jr nz, .isDMG
 
@@ -1264,8 +1303,8 @@ Call_000_08cb:
   call Call_000_07af
   call Call_000_08b0
   ld a, $a2
-  ld [$bd02], a
-  ld hl, $be00
+  ld [sBufferSectorLow], a
+  ld hl, sBufferWindow
 
 jr_000_08d9:
   ld a, l
@@ -1346,16 +1385,16 @@ Call_000_0948:
 
 DoWeEverGetHere:;is it data?
   ld a, $00
-  ld [$bd07], a
+  ld [sCartMapperMode], a
   ld a, $04
-  ld [$bd09], a
+  ld [sRegBD09], a
   ld a, $00
-  ld [$bd09], a
+  ld [sRegBD09], a
   jp LoopForever2
 
 
 CopyEndOfSRAMtoHL::;hl = address, c = count
-  ld de, $be00;last 512 bytes of _SRAM
+  ld de, sBufferWindow;last 512 bytes of _SRAM
   call Copy512FromDEtoHL
   call IncrementBD02
   dec c
@@ -1365,7 +1404,7 @@ CopyEndOfSRAMtoHL::;hl = address, c = count
 
 
 CopyDEtoEndOfSRAM::;de = address, c = count
-  ld hl, $be00
+  ld hl, sBufferWindow
   call Copy512FromDEtoHL
   call IncrementBD02
   dec c
@@ -1375,9 +1414,9 @@ CopyDEtoEndOfSRAM::;de = address, c = count
 
 
 IncrementBD02:
-  ld a, [$bd02]
+  ld a, [sBufferSectorLow]
   inc a
-  ld [$bd02], a
+  ld [sBufferSectorLow], a
   ret
 
 
@@ -1408,7 +1447,7 @@ Copy256FromDEtoHL:
 CopySRAMtoIO:
   ld hl, SRAMtoIOMap
   ld bc, _IO
-  ld de, $bf00;last 256 bytes of _SRAM
+  ld de, sIO;last 256 bytes of _SRAM
 .loopTable:
     ld a, [hl+]
     ld c, a
@@ -1422,7 +1461,7 @@ CopySRAMtoIO:
   jr .loopTable
 
 Call_000_09af:
-  ld hl, $be00
+  ld hl, sBufferWindow
   ld a, $ff
   ld c, $80
 
@@ -1582,7 +1621,7 @@ InitializeOS::;$0a43
     ld a, $04
     push af
     inc sp
-    call Call_000_048f
+    call OS_CallFarSRAM
     add sp, $03
     ld d, e
     push de
@@ -1810,7 +1849,7 @@ Jump_000_0ba6:
   ld c, l
   ld b, h
   push bc
-  call Call_000_04ba
+  call Cart_SetSectorPointerFromStack
   add sp, $02
   ld hl, $0218
   add hl, sp
@@ -1819,7 +1858,7 @@ Jump_000_0ba6:
   inc hl
   ld d, [hl]
   push de
-  call Call_000_0518
+  call BufferWindow_CopyToHL
   add sp, $02
   call Call_000_04b1
   ld hl, $0215
@@ -1833,7 +1872,7 @@ Jump_000_0ba6:
   ld c, l
   ld b, h
   push bc
-  call Call_000_04ba
+  call Cart_SetSectorPointerFromStack
   add sp, $02
   ld hl, $021a
   add hl, sp
@@ -1842,7 +1881,7 @@ Jump_000_0ba6:
   inc hl
   ld d, [hl]
   push de
-  call Call_000_052b
+  call BufferWindow_CopyFromHL
   add sp, $02
   ld hl, $0214
   add hl, sp
@@ -1872,14 +1911,14 @@ Jump_000_0c07:
   call Call_000_04b1
   ld hl, $0040
   push hl
-  call Call_000_04ba
+  call Cart_SetSectorPointerFromStack
   add sp, $02
   ld de, SaveText2
   ld a, $04
   push af
   inc sp
   push de
-  ld hl, $be00
+  ld hl, sBufferWindow
   push hl
   call Call_000_2b5a
   add sp, $05
@@ -1935,7 +1974,7 @@ Jump_000_0c61:
   ld c, l
   ld b, h
   push bc
-  call Call_000_04ba
+  call Cart_SetSectorPointerFromStack
   add sp, $02
   ld hl, $021a
   add hl, sp
@@ -1944,7 +1983,7 @@ Jump_000_0c61:
   inc hl
   ld d, [hl]
   push de
-  call Call_000_0518
+  call BufferWindow_CopyToHL
   add sp, $02
   call Call_000_04a8
   ld hl, $0215
@@ -1958,7 +1997,7 @@ Jump_000_0c61:
   ld c, l
   ld b, h
   push bc
-  call Call_000_04ba
+  call Cart_SetSectorPointerFromStack
   add sp, $02
   ld hl, $021c
   add hl, sp
@@ -1967,7 +2006,7 @@ Jump_000_0c61:
   inc hl
   ld d, [hl]
   push de
-  call Call_000_052b
+  call BufferWindow_CopyFromHL
   add sp, $02
   ld hl, $0214
   add hl, sp
@@ -2015,8 +2054,8 @@ SaveText2::      DB "SAVE", 0
 
 Call_000_0d43:
   add sp, -$07
-  call Call_000_0574
-  call Call_000_0574
+  call I2C_ResetBus
+  call I2C_ResetBus
   call Call_000_05f6
   ld de, _RAM
   ld hl, $002b
@@ -2043,7 +2082,7 @@ Call_000_0d43:
   call SetCPUSpeedSlowIfSlow
 
 jr_000_0d7a:
-  call Call_000_262c
+  call SD_Init
   ld a, e
   or a
   jp nz, Jump_000_0e50
@@ -2105,7 +2144,7 @@ jr_000_0db5:
   ld a, $06
   push af
   inc sp
-  call Call_000_048f
+  call OS_CallFarSRAM
   add sp, $03
   ld a, [$c007]
   or a
@@ -2217,7 +2256,7 @@ Call_000_0e53:
   ld [hl], $00
   ld hl, $00ff
   push hl
-  call Call_000_04ba
+  call Cart_SetSectorPointerFromStack
   add sp, $02
   call Call_000_04b1
   ld hl, sp+$01
@@ -4284,7 +4323,7 @@ Bank0Address191D::
   ld a, $08
   push af
   inc sp
-  call Call_000_048f
+  call OS_CallFarSRAM
   add sp, $03
 
 jr_000_1940:
@@ -4462,7 +4501,7 @@ jr_000_1a10:
   ld a, $07
   push af
   inc sp
-  call Call_000_048f
+  call OS_CallFarSRAM
   add sp, $03
   ld a, e
   or a
@@ -4545,7 +4584,7 @@ jr_000_1a97:
   ld a, [$c031]
   push af
   inc sp
-  call Call_000_0453
+  call Cart_LaunchGame
   inc sp
   ld e, $33
 
@@ -5212,7 +5251,7 @@ Call_000_1dd0:
   ld a, $06
   push af
   inc sp
-  call Call_000_048f
+  call OS_CallFarSRAM
   add sp, $03
   add sp, $07
   ret
@@ -5470,7 +5509,7 @@ jr_000_1f35:
   ld a, $06
   push af
   inc sp
-  call Call_000_048f
+  call OS_CallFarSRAM
   add sp, $03
   ld a, e
   or a
@@ -6299,7 +6338,8 @@ jr_000_236d:
   ret
 
 
-Call_000_2375:
+; Calculate 7-bit CRC for SD command packet
+SD_CalculateCRC7::
   add sp, -$05
   ld hl, sp+$00
   ld [hl], $00
@@ -6378,7 +6418,10 @@ Jump_000_23c5:
   ret
 
 
-Call_000_23cf:
+; Send 6-byte SD SPI command packet with calculated CRC7
+; Arguments: command (1 byte), 32-bit argument (4 bytes)
+; Returns: R1 response byte in E
+SD_SendCmd_CRC::
   add sp, -$19
   ld hl, sp+$01
   ld a, l
@@ -6579,63 +6622,63 @@ jr_000_248c:
   inc hl
   ld d, [hl]
   push de
-  call Call_000_2375
+  call SD_CalculateCRC7
   add sp, $02
   ld a, e
   set 0, a
   ld hl, sp+$00
   ld [hl], a
-  call Call_000_02ec
+  call SD_AssertCS
   ld a, $ff
   push af
   inc sp
-  call Call_000_02c8
+  call SD_SPI_TransferByte
   inc sp
   ld hl, sp+$1b
   ld a, [hl]
   push af
   inc sp
-  call Call_000_02c8
+  call SD_SPI_TransferByte
   inc sp
   ld hl, sp+$15
   ld d, [hl]
   push de
   inc sp
-  call Call_000_02c8
+  call SD_SPI_TransferByte
   inc sp
   ld hl, sp+$11
   ld d, [hl]
   push de
   inc sp
-  call Call_000_02c8
+  call SD_SPI_TransferByte
   inc sp
   ld hl, sp+$09
   ld d, [hl]
   push de
   inc sp
-  call Call_000_02c8
+  call SD_SPI_TransferByte
   inc sp
   ld hl, sp+$1c
   ld d, [hl]
   push de
   inc sp
-  call Call_000_02c8
+  call SD_SPI_TransferByte
   inc sp
   ld hl, sp+$00
   ld a, [hl]
   push af
   inc sp
-  call Call_000_02c8
+  call SD_SPI_TransferByte
   inc sp
   ld a, $ff
   push af
   inc sp
-  call Call_000_02c8
+  call SD_SPI_TransferByte
   inc sp
   ld a, $ff
   push af
   inc sp
-  call Call_000_02c8
+  call SD_SPI_TransferByte
   inc sp
   ld hl, sp+$06
   ld [hl], e
@@ -6651,7 +6694,7 @@ jr_000_253c:
   ld a, $ff
   push af
   inc sp
-  call Call_000_02c8
+  call SD_SPI_TransferByte
   inc sp
   pop bc
   ld hl, sp+$06
@@ -6672,26 +6715,30 @@ jr_000_253c:
   jr nz, jr_000_253c
 
 jr_000_2560:
-  call Call_000_02f5
+  call SD_DeassertCS
   ld hl, sp+$06
   ld e, [hl]
   add sp, $19
   ret
 
 
-Call_000_2569:
+; Send SD command packet without CRC7 (used after init when CRC is disabled)
+; Arguments: command (1 byte), 32-bit argument (4 bytes)
+; Returns: R1 response byte in E
+SD_SendCmd_Fast::
+Call_000_2569::
   add sp, -$03
-  call Call_000_02ec
+  call SD_AssertCS
   ld a, $ff
   push af
   inc sp
-  call Call_000_02e5
+  call SD_SPI_WriteByte
   inc sp
   ld hl, sp+$05
   ld a, [hl]
   push af
   inc sp
-  call Call_000_02e5
+  call SD_SPI_WriteByte
   inc sp
   push af
   ld hl, sp+$08
@@ -6715,7 +6762,7 @@ jr_000_258c:
 
   push de
   inc sp
-  call Call_000_02e5
+  call SD_SPI_WriteByte
   inc sp
   push af
   ld hl, sp+$08
@@ -6739,7 +6786,7 @@ jr_000_25aa:
 
   push de
   inc sp
-  call Call_000_02e5
+  call SD_SPI_WriteByte
   inc sp
   push af
   ld hl, sp+$08
@@ -6763,28 +6810,28 @@ jr_000_25c8:
 
   push de
   inc sp
-  call Call_000_02e5
+  call SD_SPI_WriteByte
   inc sp
   ld hl, sp+$06
   ld d, [hl]
   push de
   inc sp
-  call Call_000_02e5
+  call SD_SPI_WriteByte
   inc sp
   ld a, $ff
   push af
   inc sp
-  call Call_000_02e5
+  call SD_SPI_WriteByte
   inc sp
   ld a, $ff
   push af
   inc sp
-  call Call_000_02e5
+  call SD_SPI_WriteByte
   inc sp
   ld a, $ff
   push af
   inc sp
-  call Call_000_02da
+  call SD_SPI_WriteReadByte
   inc sp
   ld hl, sp+$00
   ld [hl], e
@@ -6800,7 +6847,7 @@ jr_000_2600:
   ld a, $ff
   push af
   inc sp
-  call Call_000_02da
+  call SD_SPI_WriteReadByte
   inc sp
   pop bc
   ld hl, sp+$00
@@ -6821,27 +6868,40 @@ jr_000_2600:
   jr nz, jr_000_2600
 
 jr_000_2623:
-  call Call_000_02f5
+  call SD_DeassertCS
   ld hl, sp+$00
   ld e, [hl]
   add sp, $03
   ret
 
 
-Call_000_262c:
+; ==============================================================================
+; SD Card Initialization & High-Level Sector Transfer Routines
+; ==============================================================================
+
+; Initialize SD card:
+; 1. Set slow SPI clock (~400 kHz) and deassert CS
+; 2. Send 128 bytes of $FF (>74 clock pulses for card power-up)
+; 3. Send CMD0 (software reset), expect R1 = 0x01
+; 4. Send CMD8 (check voltage range & interface condition)
+; 5. Loop CMD55 + ACMD41 with HCS bit until card is ready (response 0x00)
+; 6. Send CMD58 (read OCR) to check CCS bit for SDHC/SDXC support
+; 7. Switch to fast SPI clock
+; Returns: E = 0 on success, or error code in E ($C0-$CA)
+SD_Init::
   add sp, -$05
-  ld hl, $c2bd
+  ld hl, $c2bd         ; wSDCardInitialized
   ld [hl], $00
-  ld hl, $c2b8
+  ld hl, $c2b8         ; wSDCardFlags
   ld [hl], $00
   xor a
-  ld hl, $c2b9
+  ld hl, $c2b9         ; wSDCurrentSector
   ld [hl+], a
   ld [hl+], a
   ld [hl+], a
   ld [hl], a
-  call Call_000_02fe
-  call Call_000_02f5
+  call SD_SetSPISlow   ; Slow SPI clock for init
+  call SD_DeassertCS   ; CS high
   ld bc, $0000
 
 jr_000_2649:
@@ -6849,7 +6909,7 @@ jr_000_2649:
   ld a, $ff
   push af
   inc sp
-  call Call_000_02c8
+  call SD_SPI_TransferByte
   inc sp
   pop bc
   inc bc
@@ -6875,7 +6935,7 @@ jr_000_2649:
   ld a, $48
   push af
   inc sp
-  call Call_000_23cf
+  call SD_SendCmd_CRC
   add sp, $05
   ld hl, sp+$02
   ld [hl], e
@@ -6886,7 +6946,7 @@ jr_000_2680:
   ld a, $ff
   push af
   inc sp
-  call Call_000_02c8
+  call SD_SPI_TransferByte
   inc sp
   pop bc
   inc bc
@@ -6937,7 +6997,7 @@ Jump_000_26bf:
   ld a, $77
   push af
   inc sp
-  call Call_000_23cf
+  call SD_SendCmd_CRC
   add sp, $05
   pop bc
   ld a, e
@@ -6960,7 +7020,7 @@ jr_000_26db:
   ld a, $69
   push af
   inc sp
-  call Call_000_23cf
+  call SD_SendCmd_CRC
   add sp, $05
   pop bc
   ld a, e
@@ -7009,7 +7069,7 @@ jr_000_271b:
   ld a, $7a
   push af
   inc sp
-  call Call_000_23cf
+  call SD_SendCmd_CRC
   add sp, $05
   inc e
   jr nz, jr_000_2734
@@ -7019,11 +7079,11 @@ jr_000_271b:
 
 
 jr_000_2734:
-  call Call_000_02ec
+  call SD_AssertCS
   ld a, $ff
   push af
   inc sp
-  call Call_000_02c8
+  call SD_SPI_TransferByte
   inc sp
   ld hl, sp+$03
   ld [hl], e
@@ -7034,7 +7094,7 @@ jr_000_2745:
   ld a, $ff
   push af
   inc sp
-  call Call_000_02c8
+  call SD_SPI_TransferByte
   inc sp
   pop bc
   inc bc
@@ -7063,7 +7123,7 @@ Jump_000_2769:
   ld a, $77
   push af
   inc sp
-  call Call_000_23cf
+  call SD_SendCmd_CRC
   add sp, $05
   inc e
   jr nz, jr_000_2782
@@ -7080,7 +7140,7 @@ jr_000_2782:
   ld a, $69
   push af
   inc sp
-  call Call_000_23cf
+  call SD_SendCmd_CRC
   add sp, $05
   ld b, e
   ld a, b
@@ -7113,7 +7173,7 @@ Jump_000_27ab:
   ld a, $77
   push af
   inc sp
-  call Call_000_23cf
+  call SD_SendCmd_CRC
   add sp, $05
   ld b, e
   ld a, b
@@ -7136,7 +7196,7 @@ jr_000_27cc:
   ld a, $69
   push af
   inc sp
-  call Call_000_23cf
+  call SD_SendCmd_CRC
   add sp, $05
   ld b, e
   ld a, b
@@ -7162,7 +7222,7 @@ Jump_000_27f3:
   ld a, $41
   push af
   inc sp
-  call Call_000_23cf
+  call SD_SendCmd_CRC
   add sp, $05
   ld b, e
   ld a, b
@@ -7212,7 +7272,7 @@ jr_000_2824:
 
 Jump_000_2835:
 jr_000_2835:
-  call Call_000_0307
+  call SD_SetSPIFast
   ld hl, $c2b9
   ld [hl], $01
   xor a
@@ -7229,7 +7289,7 @@ jr_000_284a:
   ld a, $ff
   push af
   inc sp
-  call Call_000_02e5
+  call SD_SPI_WriteByte
   inc sp
   pop bc
   inc bc
@@ -7309,7 +7369,7 @@ jr_000_2894:
 
 
 jr_000_28b0:
-  call Call_000_02ec
+  call SD_AssertCS
   ld e, $00
   ret
 
@@ -7444,14 +7504,14 @@ jr_000_2916:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_037b
+  call SD_ReadSectorsToRAM
   add sp, $03
   ld a, e
   or a
   jr z, jr_000_296a
 
   push de
-  call Call_000_02f5
+  call SD_DeassertCS
   pop de
 
 Jump_000_296a:
@@ -7590,14 +7650,14 @@ jr_000_29cd:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_034b
+  call SD_ReadSectorsToBufferWindow
   add sp, $03
   ld a, e
   or a
   jr z, jr_000_2a21
 
   push de
-  call Call_000_02f5
+  call SD_DeassertCS
   pop de
 
 Jump_000_2a21:
@@ -7633,7 +7693,7 @@ Call_000_2a24:
 
 
 jr_000_2a3c:
-  call Call_000_02f5
+  call SD_DeassertCS
   ld hl, $0000
   push hl
   ld hl, $0000
@@ -7701,7 +7761,7 @@ jr_000_2a7a:
 
 
 jr_000_2a96:
-  call Call_000_02ec
+  call SD_AssertCS
   ld e, $00
   ret
 
@@ -7734,10 +7794,10 @@ Call_000_2a9c:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_03be
+  call SD_WriteSectorsFromRAM
   add sp, $03
   push de
-  call Call_000_02f5
+  call SD_DeassertCS
   pop de
   ld a, e
   or a
@@ -7776,10 +7836,10 @@ Call_000_2ad1:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_039e
+  call SD_WriteSectorsFromBufferWindow
   add sp, $03
   push de
-  call Call_000_02f5
+  call SD_DeassertCS
   pop de
   ld a, e
   or a
@@ -7843,7 +7903,7 @@ jr_000_2b2e:
   ld a, $40
   push af
   inc sp
-  call Call_000_23cf
+  call SD_SendCmd_CRC
   add sp, $05
   jr jr_000_2b26
 

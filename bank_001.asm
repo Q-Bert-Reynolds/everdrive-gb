@@ -5109,12 +5109,12 @@ jr_001_58c4:
 
 jr_001_58c6:
   push de
-  call Call_000_0563
+  call I2C_Start
   pop de
   push de
   push de
   inc sp
-  call Call_000_058c
+  call I2C_WriteByte
   inc sp
   ld a, e
   pop de
@@ -5136,7 +5136,7 @@ jr_001_58da:
   push de
   push bc
   inc sp
-  call Call_000_058c
+  call I2C_WriteByte
   inc sp
   ld a, e
   pop de
@@ -5154,7 +5154,7 @@ jr_001_58f3:
   push de
   push bc
   inc sp
-  call Call_000_058c
+  call I2C_WriteByte
   inc sp
   ld a, e
   pop de
@@ -5167,13 +5167,13 @@ jr_001_58f3:
 
 jr_001_5907:
   push de
-  call Call_000_0563
+  call I2C_Start
   pop de
   ld a, d
   set 0, a
   push af
   inc sp
-  call Call_000_058c
+  call I2C_WriteByte
   inc sp
   ld a, e
   or a
@@ -5184,7 +5184,7 @@ jr_001_5907:
 
 
 jr_001_591c:
-  call Call_000_0580
+  call I2C_Ack
   ld hl, sp+$06
   ld a, [hl+]
   ld h, [hl]
@@ -5195,15 +5195,15 @@ jr_001_591c:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_05b5
+  call I2C_ReadBytes
   add sp, $04
-  call Call_000_0586
+  call I2C_Stop
   ld a, $ff
   push af
   inc sp
-  call Call_000_058c
+  call I2C_WriteByte
   inc sp
-  call Call_000_0574
+  call I2C_ResetBus
   ld e, $00
   ret
 
@@ -5264,14 +5264,14 @@ jr_001_5976:
   jr z, jr_001_5996
 
   push bc
-  call Call_000_0563
+  call I2C_Start
   pop bc
   push bc
   ld hl, sp+$05
   ld a, [hl]
   push af
   inc sp
-  call Call_000_058c
+  call I2C_WriteByte
   inc sp
   ld a, e
   pop bc
@@ -5279,7 +5279,7 @@ jr_001_5976:
   jr z, jr_001_5996
 
   push bc
-  call Call_000_0574
+  call I2C_ResetBus
   pop bc
   dec b
   jr jr_001_5976
@@ -5309,7 +5309,7 @@ jr_001_599f:
   ld e, $00
   push de
   inc sp
-  call Call_000_058c
+  call I2C_WriteByte
   inc sp
   ld a, e
   or a
@@ -5325,7 +5325,7 @@ jr_001_59c0:
   ld e, $00
   push de
   inc sp
-  call Call_000_058c
+  call I2C_WriteByte
   inc sp
   ld a, e
   or a
@@ -5364,11 +5364,11 @@ jr_001_59e8:
   push bc
   inc sp
   push de
-  call Call_000_05d3
+  call I2C_WriteBytes
   add sp, $03
   pop bc
   push bc
-  call Call_000_0574
+  call I2C_ResetBus
   pop bc
   ld hl, sp+$02
   dec hl
@@ -5411,7 +5411,7 @@ jr_001_59e8:
 
 
 Jump_001_5a2d:
-  call Call_000_0574
+  call I2C_ResetBus
   ld e, $00
 
 Jump_001_5a32:
@@ -5523,24 +5523,24 @@ Bank1Address5AB3::
   ld e, $1f
 
 Call_001_5abf:
-  call Call_000_0563
+  call I2C_Start
   ld a, $d0
   push af
   inc sp
-  call Call_000_058c
+  call I2C_WriteByte
   inc sp
   xor a
   push af
   inc sp
-  call Call_000_058c
+  call I2C_WriteByte
   inc sp
-  call Call_000_0563
+  call I2C_Start
   ld a, $d1
   push af
   inc sp
-  call Call_000_058c
+  call I2C_WriteByte
   inc sp
-  call Call_000_0580
+  call I2C_Ack
   pop bc
   pop de
   push de
@@ -5548,28 +5548,28 @@ Call_001_5abf:
   ld hl, $0010
   push hl
   push de
-  call Call_000_05b5
+  call I2C_ReadBytes
   add sp, $04
-  call Call_000_0586
+  call I2C_Stop
   ld a, $ff
   push af
   inc sp
-  call Call_000_058c
+  call I2C_WriteByte
   inc sp
-  jp Call_000_0574
+  jp I2C_ResetBus
 
 
 Call_001_5afb:
-  call Call_000_0563
+  call I2C_Start
   ld a, $d0
   push af
   inc sp
-  call Call_000_058c
+  call I2C_WriteByte
   inc sp
   xor a
   push af
   inc sp
-  call Call_000_058c
+  call I2C_WriteByte
   inc sp
   pop bc
   pop de
@@ -5579,9 +5579,9 @@ Call_001_5afb:
   push af
   inc sp
   push de
-  call Call_000_05d3
+  call I2C_WriteBytes
   add sp, $03
-  jp Call_000_0574
+  jp I2C_ResetBus
 
 
 Call_001_5b1e:
@@ -5661,7 +5661,7 @@ Call_001_5b7f:
   call Call_000_04b1
   ld hl, $00ff
   push hl
-  call Call_000_04ba
+  call Cart_SetSectorPointerFromStack
   add sp, $02
   ld hl, sp+$04
   ld a, [hl+]
@@ -7266,7 +7266,7 @@ jr_001_6366:
 
   ld hl, $0040
   push hl
-  call Call_000_04ba
+  call Cart_SetSectorPointerFromStack
   add sp, $02
   ld de, Bank1Address63DB
   ld a, $04
@@ -7485,7 +7485,7 @@ Bank1Function6471::
 
   ld hl, $0040
   push hl
-  call Call_000_04ba
+  call Cart_SetSectorPointerFromStack
   add sp, $02
   ld de,Bank1Address64D5
   ld hl, $be00

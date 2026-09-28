@@ -1,13 +1,25 @@
+DEF EDGB_UNLOCK_KEY   EQU $a5 
+
 ;SRAM
-  ;  lots of calls to _SRAM addresses
-  ;  it's likely these are data blocks misidentified as code
-
-  ;$bd02
-  ;  incremented when copying to/from end of SRAM ($be00)
-  ;  CopyDEtoBD02 called before copying to/from end of SRAM
-  ;  set to %01100001 before setting CPU speed
-  ;$bf4d GBC flags
-
+DEF sSPIData          EQU $bd00
+DEF sSPIControl       EQU $bd01
+DEF sBufferSectorLow  EQU $bd02
+DEF sBufferSectorHigh EQU $bd03
+DEF sRegBD04          EQU $bd04
+DEF sRegBD05          EQU $bd05
+DEF sStreamingConfig  EQU $bd06
+DEF sCartMapperMode   EQU $bd07
+DEF sCurrentBank      EQU $bd08
+DEF sRegBD09          EQU $bd09
+DEF sEDGBUnlock       EQU $bd0a
+DEF sRegBD0B          EQU $bd0b
+DEF sI2CInterfaceC    EQU $bd0c
+DEF sI2CInterfaceD    EQU $bd0d
+DEF sI2CInterfaceE    EQU $bd0e
+DEF sI2CInterfaceF    EQU $bd0f
+DEF sBufferWindow     EQU $be00;$be00 - $bfff
+DEF sIO               EQU $bf00;$bf00 - $bf32... overlaps with buffer window
+DEF sGBCFlags         EQU $bf4d
 ; The calls to $b805 and $a309 are SDCC compiler runtime helpers placed in RAM.
 ; (indirect function call trampoline jp hl and math routines) 
 
