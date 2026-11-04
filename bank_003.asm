@@ -2576,7 +2576,7 @@ ErrorHeadingText::      DB "      ERROR:", 0
 FileTooLargeText::      DB "File is too large", 0
 Fat16NotSupportedText:: DB "FAT16 not supported", 0
 PleaseUseFat32Text::    DB "Please use FAT32", 0
-SDIOErrorText::         DB "SD IO error", 0
+SDIOErrorText::         DB "SD IO error", 0, 0
 SDInitErrorText::       DB "SD init error", 0
 DiskReadErrorText::     DB "disk read error", 0
 DiskWriteErrorText::    DB "disk write error", 0

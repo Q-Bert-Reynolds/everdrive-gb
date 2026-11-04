@@ -23,8 +23,10 @@ SECTION "RST $38", ROM0[$38]
   reti
 
 SECTION "VBlank", ROM0[$0040]
+VBlankVector:
   jp VBLInterrupt
 
+IF KEYBOARD
 SECTION "LCDC", ROM0[$0048]
   reti
 
@@ -36,16 +38,24 @@ SECTION "Serial", ROM0[$0058]
 
 SECTION "p1thru4", ROM0[$0060]
   reti
+ELSE
+; Unused vectors are $FF (rst $38). The reti at $38 returns to the next $FF,
+; and the chain continues until it reaches the reti at $0066.
+SECTION "p1thru4", ROM0[$0060]
+  DS 6, $ff
+  reti
+ENDC
 
 SECTION "Header", ROM0[$100]
-  nop
   jp EntryPoint
+  DB $ff
 
   NINTENDO_LOGO
-  DB "GBXOS",0,0,0,0,0,0
+  DB "GBXOS"
+  DS 6, $ff
   DB "KRKZ"
   DB CART_COMPATIBLE_DMG_GBC
-  DB 0,0
+  DB $ff, $ff
   DB CART_INDICATOR_SGB
   DB CART_ROM;cart size and type info don't reflect reality
   DB CART_ROM_32KB
@@ -53,8 +63,9 @@ SECTION "Header", ROM0[$100]
   DB CART_DEST_NON_JAPANESE
   DB $33
   DB 0
-  DB 0;complement check and checksum are overwritten by RGBFIX
-  DW 0
+  DB $73;header checksum (valid for every build option)
+  DB $e1, $7e;global checksum as shipped in v1.04 (incorrect, but unused by hardware)
+             ;rgbfix -v overwrites this in modded builds; `make original` leaves it alone
 
 SECTION "Bank 0 R/W Data $01f0", ROM0[$01f0]
   DB $00
@@ -80,35 +91,57 @@ EntryPoint:
   
   ld a, [CartSwitch]
 CheckCartSwitch:
+IF KEYBOARD
   and a
+ELSE
+  cp $00
+ENDC
   jr nz, CartSwitchPressed
 
 InitializeCart::
   ld sp, $dfff;end of ram
+IF KEYBOARD
   xor a
   ld [kb_detected], a
+ELSE
+  ld a, $00
+ENDC
   ldh [rSVBK], a
   ldh [rVBK], a
   ld [sCartMapperMode], a; Cartridge mapper mode
   ld a, $04
   ld [sRegBD09], a
+IF KEYBOARD
   call SetupKeyboard
+ELSE
+  call SetInterrupts
+ENDC
   call InitializeOS
   jr EntryPoint
 
 SetInterrupts::;probably not the only thing this does
   ld a, $04
   ld [sStreamingConfig], a
+IF KEYBOARD
   ld a, IEF_SERIAL
   ldh [rIE], a;enable serial interrupt
   xor a
+ELSE
+  ld a, $00
+  DB $ea
+  DW rIE;ld [rIE], a (3-byte form) to disable all interrupts
+ENDC
   ld [sSPIControl], a; SPI Control: Assert CS (0), fast speed (0), auto-read disabled (0)
   ld a, $04
   ld [sCurrentBank], a; Select OS SRAM Bank 4
   ret
 
 CartSwitchPressed:
+IF KEYBOARD
   xor a
+ELSE
+  ld a, $00
+ENDC
   ld [CartSwitch], a
   ld a, $10
   ld [sStreamingConfig], a
@@ -867,34 +900,34 @@ Call_000_0605:
   ret
 
 SECTION "Bank 0 R/W Data $060b", ROM0[$060b]
-edRW_060B: DB 0
-edRW_060C: DB 0
-edRW_060D: DB 0
-edRW_060E: DB 0
-edRW_060F: DB 0
-edRW_0610: DB 0
-edRW_0611: DB 0
-edRW_0612: DB 0
-edRW_0613: DB 0
-edRW_0614: DB 0
-edRW_0615: DB 0
-edRW_0616: DB 0
-edRW_0617: DB 0
-edRW_0618: DB 0
-edRW_0619: DB 0
-edRW_061A: DB 0
-edRW_061B: DB 0
-edRW_061C: DB 0
-edRW_061D: DB 0
-edRW_061E: DB 0
-edRW_061F: DB 0
-edRW_0620: DB 0
-edRW_0621: DB 0
-edLCDC:    DB 0
-edSVBK:    DB 0
-edVBK:     DB 0
-edBCPS:    DB 0
-edOCPS:    DB 0
+edRW_060B: DB $ff
+edRW_060C: DB $ff
+edRW_060D: DB $ff
+edRW_060E: DB $ff
+edRW_060F: DB $ff
+edRW_0610: DB $ff
+edRW_0611: DB $ff
+edRW_0612: DB $ff
+edRW_0613: DB $ff
+edRW_0614: DB $ff
+edRW_0615: DB $ff
+edRW_0616: DB $ff
+edRW_0617: DB $ff
+edRW_0618: DB $ff
+edRW_0619: DB $ff
+edRW_061A: DB $ff
+edRW_061B: DB $ff
+edRW_061C: DB $ff
+edRW_061D: DB $ff
+edRW_061E: DB $ff
+edRW_061F: DB $ff
+edRW_0620: DB $ff
+edRW_0621: DB $ff
+edLCDC:    DB $ff
+edSVBK:    DB $ff
+edVBK:     DB $ff
+edBCPS:    DB $ff
+edOCPS:    DB $ff
 
 SRAMtoIOMap::
   DB rAUDENA           & $FF
@@ -1197,7 +1230,7 @@ jr_000_07f7:
     and $01;is VBL flag set
     jr z, .waitVBL
   pop af
-  jp VBLInterrupt
+  jp VBlankVector
 
 Call_000_0814:
   ld a, $40
@@ -1479,8 +1512,9 @@ jr_000_09b6:
 LoopForever2::
   jr LoopForever2
 
+SwapABFlag:: DB 0;nonzero swaps the A and B buttons, see GetInput
+
 WaitVBL:
-  nop
   ld a, $00;clear interrupt flags
   ldh [rIF], a
 .waitVBL:
@@ -1560,7 +1594,8 @@ ClearC144toC2AB::
   ret
 
 UpdateInput::;puts button state in e
-  call DetectKeyboard 
+IF KEYBOARD
+  call DetectKeyboard
 
   ei
 REPT 6;to keep InitializeOS at $0a43
@@ -1591,6 +1626,30 @@ ENDR
   ld [hl], e;store button state
 
   ret
+ELSE
+  ld a, P1F_GET_DPAD
+  ldh [rP1], a
+REPT 4;multiple reads to avoid button bounce
+  ldh a, [rP1];load dPad
+ENDR
+  and $0f
+  ld e, a
+  ld a, P1F_GET_BTN
+  ldh [rP1], a
+REPT 4
+  sla e
+ENDR
+REPT 4
+  ldh a, [rP1];load buttons
+ENDR
+  and $0f
+  or e
+  cpl
+  ld e, a
+  ld a, P1F_GET_NONE
+  ldh [rP1], a
+  ret
+ENDC
 
 InitializeOS::;$0a43
   ld a, $01
@@ -5522,7 +5581,15 @@ jr_000_1f74:
   add sp, $0f
   ret
 
-UIColors:: INCLUDE "colors.asm"
+UIColors::
+IF CUSTOM_COLORS
+  INCLUDE "colors.asm"
+ELSE
+  RGB 0,  0,  0 ;BackgroundColor
+  RGB 4,  31, 4 ;UnselectedTextColor
+  RGB 15, 15, 15;MenuColor
+  DW $ffff      ;SelectedTextColor (white; the original sets the unused bit 15)
+ENDC
 
   nop
   nop
@@ -5571,9 +5638,14 @@ GetInput::;returns buttons in e
 
 .updateGamepad:
   call UpdateInput
-  call ProcessKeyCodes
+IF KEYBOARD
+  call ProcessKeyCodes;UpdateInput already stored the button state
   nop
-  ld hl, WaitVBL
+ELSE
+  ld hl, wGamepadState
+  ld [hl], e;store button state
+ENDC
+  ld hl, SwapABFlag
   ld a, [hl]
   or a
   jr z, .checkButtons

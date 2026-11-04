@@ -7382,10 +7382,7 @@ Bank1Address63F1::
   ld b, c
   ld d, b
   nop
-Bank1Address63FE::
-  ld [hl], e
-  ld h, c
-  halt
+Bank1Address63FE:: DB "sav", 0
 
 Call_001_6402:
   add sp, -$80
@@ -7573,10 +7570,7 @@ Bank1Address64F2::
   ld b, c
   ld d, b
   nop
-Bank1Address64F8::
-  ld [hl], e
-  ld h, c
-  halt
+Bank1Address64F8:: DB "sav", 0
 
 Call_001_64fc:
   add sp, -$80
@@ -10745,4 +10739,8 @@ Jump_001_71df:
 
 SECTION "Font Tiles", ROMX[$7d00], BANK[1]
 FontTiles::
+IF CUSTOM_FONT
   INCBIN "gfx/font.1bpp"
+ELSE
+  INCBIN "gfx/font_original.1bpp"
+ENDC

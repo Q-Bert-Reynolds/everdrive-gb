@@ -5,3 +5,13 @@ Initial disassembly was done with [mgbdis v1.5](https://github.com/mattcurrie/mg
 To change colors, edit the RGB values (0 to 31) in [colors.asm](colors.asm).
 
 To change the font, edit [font.png](gfx/font.png).
+
+## Build options
+
+The custom colors, custom font, and keyboard support can each be turned off (see [options.inc](options.inc)):
+
+```
+make                # everything on
+make KEYBOARD=0     # any of COLORS, FONT, KEYBOARD can be set to 0
+make original       # all off: GBCOS_original.bin, byte-identical to GBC-OS-v1.04.bin
+```
