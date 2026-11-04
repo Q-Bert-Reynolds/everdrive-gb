@@ -1,0 +1,370 @@
+
+EDGB Hardware Register Map:
+
+$BD0A   Hardware Unlock (W)    
+        Writing $A5 unlocks access to all other cartridge registers.
+
+$BD00   SPI Data Register (R/W)   
+        Writing a byte initiates an SPI transmission to the SD card. 
+        Reading returns the received byte.
+
+$BD01   SPI Status & Control (R/W)
+        • Bit 7 (Read): Busy flag (1 = busy, 0 = transfer complete)
+        • Bit 2 (Write): Auto-Clock Streaming (1 = auto clock on read, 0 = manual)
+        • Bit 1 (Write): SPI Clock Speed (1 = Slow ~400 kHz for init, 0 = Fast / Full Speed)
+        • Bit 0 (Write): SD Chip Select / CS (0 = Assert/Active Low, 1 = Deassert/Inactive)
+
+$BD06   Streaming / System Config (R/W)
+        • Bit 0: Set to 1 with $BD01.2 to enable high-speed sector streaming.
+
+$BD02   Buffer Sector Pointer (Low) (R/W)
+        Selects the 512-byte sector mapped to $BE00–$BFFF.
+
+$BD03   Buffer Sector Pointer (High) (R/W)
+        High byte for sector buffer selection.
+
+$BE00–$BFFF	512-Byte Sector Window (R/W)
+        512-byte hardware buffer window mapped into cart SRAM space.
+
+$BD08   OS SRAM Bank (R/W)
+        Banks 8 KB RAM/ROM pages into $A000–$BFFF for the OS menu.
+
+$BD0C–$BD0F	I2C Interface (R/W)
+        Controls the on-cartridge RTC (Real-Time Clock) and EEPROM/FRAM.
+
+
+$C100	Partition start LBA (4 bytes)
+$C104	FAT start sector (4 bytes)
+$C108	Data start sector (4 bytes)
+$C10C	Root directory cluster (4 bytes)
+$C110	Current directory cluster (4 bytes)
+$C114	Sectors per cluster
+$C115	FAT type (16 or 32)
+$C116	Sectors per FAT (4 bytes)
+$C120	File handle: current cluster
+$C124	File handle: current sector in cluster
+$C125	File handle: byte offset
+$C128	File handle: remaining size
+$C130	File browser list buffer
+
+Call Graph Summary
+
+Main Menu ($0800)
+ ├─ Mount FAT ($1C6B)
+ │   ├─ SD Read Sector ($1B90)
+ │   └─ Parse BPB fields
+ ├─ Change Directory ($2050)
+ │   └─ Scan Directory ($1F6E)
+ │       ├─ Cluster to Sector ($1DCA)
+ │       ├─ SD Read Sector ($1B90)
+ │       └─ Read FAT Entry ($1E0A)
+ ├─ Enumerate Directory ($1FD0)
+ │   ├─ (same chain-walking as Scan)
+ │   └─ Read Directory Entry ($1F10)
+ └─ [On file select]:
+     ├─ Open File ($20F0)
+     │   └─ Scan Directory ($1F6E)
+     ├─ Read File ($2130 / $21B0)
+     │   ├─ SD Read Sector ($1B90)
+     │   └─ Read FAT Entry ($1E0A)
+     ├─ Create File ($23B0)
+     │   ├─ Allocate Cluster ($2240)
+     │   │   ├─ Read FAT Entry ($1E0A)
+     │   │   └─ Write FAT Entry ($1E8A)
+     │   └─ Create Dir Entry ($2330)
+     ├─ Create Directory ($23F0)
+     │   ├─ Allocate Cluster ($2240)
+     │   └─ Create Dir Entry ($2330)
+     └─ Write File ($2460)
+         ├─ SD Write Sector ($1BFE)
+         └─ Extend Chain ($22C0)
+
+Bank 0 Analysis: File System & SD Card Operations
+
+Overview
+Bank 0 (addresses $0000–$3FFF) contains the core low-level infrastructure: the interrupt vector table, the boot sequence, SPI/SD card primitives, the complete FAT filesystem driver, and the file browser UI. It is compiled from C (SDCC conventions), so most routines use the stack for parameters and return values in register pairs.
+
+
+
+1. SPI / SD-Card Primitives
+
+Call_000_1a40 – SPI Transfer Byte
+Address: $1A40
+Sends one byte through the SPI bus by writing to sSPIData ($BD00) and then polling sSPIControl ($BD01) bit 7 until the transfer completes. Returns the received byte in A.
+
+Call_000_1a53 – SD Send Command
+Address: $1A53
+Sends a 6-byte SD command packet. The command index and argument are passed on the stack. Calls Call_000_1a40 repeatedly to clock out the 6 command bytes (command, 4 argument bytes, CRC/stop byte $95 or $FF).
+
+Call_000_1a9c – SD Wait Response (R1)
+Address: $1A9C
+Polls the SPI bus for an R1 response (loops until the received byte's bit 7 is clear). Used after every command.
+
+Call_000_1ab7 – SD Init
+Address: $1AB7
+Full SD card initialization sequence:
+
+Sends 80+ clock cycles with CS high (sends $FF bytes).
+CMD0 (GO_IDLE_STATE) – puts the card into SPI mode.
+CMD8 (SEND_IF_COND) – voltage check for SDHC.
+Loop: ACMD41 (SD_SEND_OP_COND) with HCS bit set until card leaves idle.
+CMD58 (READ_OCR) – reads OCR to determine if card is SDHC (block-addressed).
+Stores an SDHC flag for later use (sector addressing vs. byte addressing).
+Call_000_1b90 – SD Read Single Sector
+Address: $1B90
+CMD17 (READ_SINGLE_BLOCK). Reads a 512-byte sector into the EDGB buffer window. The sector number (32-bit LBA) is passed on the stack. For non-SDHC cards, it left-shifts the sector number by 9 (×512) to convert to byte address. After sending CMD17, it waits for the data token ($FE), then reads 512 bytes through SPI into RAM.
+
+Call_000_1bfe – SD Write Single Sector
+Address: $1BFE
+CMD24 (WRITE_SINGLE_BLOCK). Writes 512 bytes from the buffer window to the SD card. Sends the data token ($FE), 512 data bytes, then 2 CRC bytes ($FF). Waits for the data-response token and then polls the busy signal.
+
+
+
+2. EDGB FPGA Buffer Interface
+
+Call_000_19f1 – Set Buffer Sector Address
+Address: $19F1
+Sets sBufferSectorLow ($BD02) and sBufferSectorHigh ($BD03) to select which 512−byte "sector" within the EDGB's buffer SRAM to expose through the $BE00-$BFFF window. This is how the CPU accesses the FPGA's large buffer one 512-byte page at a time.
+
+Call_000_1a0a – Read SD Sector into Buffer
+Address: $1A0A
+Reads an SD sector and stores it into the FPGA buffer at a given buffer-sector index. Combines Set Buffer Sector Address + SD Read Single Sector, copying the 512 SPI bytes directly into the $BE00 window.
+
+Call_000_1a25 – Write SD Sector from Buffer
+Address: $1A25
+The inverse: writes 512 bytes from the FPGA buffer (at a given buffer-sector index) out to an SD sector via SPI.
+
+
+
+3. FAT Filesystem Driver
+
+3a. FAT Boot Sector / BPB Parsing
+Call_000_1c6b – Mount / Parse FAT Volume
+Address: $1C6B
+This is the FAT filesystem initialization function. It:
+
+Reads sector 0 (MBR) from SD.
+Checks for the $55AA boot signature at offset $1FE.
+Reads the partition table entry at offset $1BE to get the first partition's start LBA.
+Reads the Volume Boot Record (VBR/BPB) from that LBA.
+Extracts key BPB fields and stores them in WRAM variables:
+Bytes per sector (offset $0B) — always 512
+Sectors per cluster (offset $0D) — stored at a WRAM variable (let's call it wSectorsPerCluster)
+Reserved sector count (offset $0E)
+Number of FATs (offset $10) — usually 2
+Root entry count (offset $11) — for FAT16
+Total sectors (offsets $13/$20)
+Sectors per FAT (offset $16 for FAT16, offset $24 for FAT32)
+Root cluster (offset $2C for FAT32)
+Computes derived values:
+FATStartSector = PartitionStart + ReservedSectors
+DataStartSector = FATStartSector + (NumFATs × SectorsPerFAT) + RootDirSectors
+ClusterToSector conversion base = DataStartSector - (2 × SectorsPerCluster) (since cluster numbering starts at 2)
+Determines FAT type (FAT16 vs FAT32) based on total cluster count.
+For FAT16, the root directory is at a fixed location; for FAT32, it uses the root cluster from the BPB.
+All these computed values are stored in a filesystem state structure in WRAM (around C100−C1FF area based on later references).
+
+3b. Cluster ↔ Sector Conversion
+Call_000_1dca – Cluster to Sector
+Address: $1DCA
+Converts a cluster number to its starting LBA sector number: sector = DataStartSector + (cluster - 2) × SectorsPerCluster
+
+Uses the pre-computed base from the mount function. The cluster number is 32-bit (for FAT32 support).
+
+3c. FAT Table Access
+Call_000_1e0a – Read FAT Entry (Get Next Cluster)
+Address: $1E0A
+Given a cluster number, reads the corresponding FAT table entry to find the next cluster in the chain:
+
+Computes FAT sector: FATStartSector + (cluster × entrySize) / 512
+For FAT32: entry size = 4 bytes, so FATSector = FATStart + (cluster × 4) / 512 = FATStart + cluster / 128
+For FAT16: entry size = 2 bytes, so FATSector = FATStart + cluster / 256
+Reads that FAT sector from SD into the buffer.
+Extracts the 2-byte (FAT16) or 4-byte (FAT32) entry at the appropriate offset within the sector.
+Returns the next cluster value in a register pair or WRAM variable.
+End-of-chain markers: 
+FFF8−FFFF (FAT16) or $0FFFFFF8-$0FFFFFFF (FAT32).
+Call_000_1e8a – Write FAT Entry
+Address: $1E8A
+Writes a value to a FAT table entry (used when creating/extending files). Same sector/offset calculation as reading, but writes the value and then writes the sector back to SD.
+
+3d. Directory Entry Parsing
+Call_000_1f10 – Read Directory Entry
+Address: $1F10
+Reads a 32-byte FAT directory entry from the current directory sector in the buffer. Each entry contains:
+
+Bytes 0-7: Filename (8 chars, space-padded)
+Bytes 8-10: Extension (3 chars, space-padded)
+Byte 11: Attributes (Archive, Directory, Volume, System, Hidden, Read-only)
+Bytes 20-21: High word of first cluster (FAT32)
+Bytes 26-27: Low word of first cluster
+Bytes 28-31: File size (32-bit)
+The function extracts these fields into a WRAM file info structure.
+
+Call_000_1f6e – Scan Directory for File/Folder
+Address: $1F6E
+Iterates through all entries in a directory:
+
+Reads the first cluster of the directory.
+Converts cluster to sector.
+Reads each sector.
+For each 32-byte entry in the sector (16 entries per sector):
+Checks first byte: 
+00=endofdirectory,E5 = deleted entry (skip).
+Checks attributes: skips volume label entries, optionally skips hidden/system.
+For LFN entries (attribute = $0F): accumulates the long filename pieces.
+For short entries: compares the 8.3 name against the search target.
+When all entries in a sector are processed, loads next sector in cluster.
+When all sectors in a cluster are processed, follows the FAT chain to the next cluster.
+Returns when a match is found or the directory is exhausted.
+Call_000_1fd0 – Enumerate Directory (for UI listing)
+Address: $1FD0
+Similar to the scan function but instead of searching for a specific name, it collects entries for the file browser UI:
+
+Walks the directory cluster chain.
+For each valid entry (non-deleted, non-volume-label, non-hidden/system unless settings allow):
+Copies filename into a list buffer in WRAM.
+Marks whether each entry is a file or subdirectory (from attribute byte bit 4).
+Maintains a count of entries found.
+May implement pagination (only collecting entries within a certain index range for scrolling).
+3e. Path Navigation
+Call_000_2050 – Change Directory (Open Subdirectory)
+Address: $2050
+Changes the "current directory" by:
+
+Finding the target directory name in the current directory (using the scan function).
+Extracting its first cluster from the directory entry.
+Updating the stored "current directory cluster" in the filesystem state.
+Special case for ".." (parent directory): the first cluster might be 0, which means root.
+Call_000_20a0 – Parse Path String
+Address: $20A0
+Takes a full path string like "/EDGB/SAVES/game.sav" and navigates to it:
+
+If the path starts with "/", resets to the root directory cluster.
+Tokenizes the path by "/" separators.
+For each component, calls Change Directory to descend.
+The last component may be a file rather than a directory.
+3f. File Read Operations
+Call_000_20f0 – Open File for Reading
+Address: $20F0
+
+Uses the scan function to find the file in the current directory.
+Extracts the first cluster and file size from the directory entry.
+Stores them in a "file handle" structure in WRAM:
+Current cluster
+Current sector within cluster
+Byte offset within sector
+Remaining bytes to read
+Returns success/failure.
+Call_000_2130 – Read File Data
+Address: $2130
+Reads data from an open file:
+
+Converts current cluster to sector number.
+Reads the sector into the buffer.
+Copies bytes from the buffer (starting at current offset) to the destination in WRAM or EDGB SRAM.
+Advances the file position:
+Increments byte offset.
+When a sector is fully read (offset reaches 512), moves to next sector in cluster.
+When all sectors in a cluster are read, follows the FAT chain to get the next cluster.
+Decrements remaining byte count.
+Repeats until the requested number of bytes are read or EOF.
+Call_000_21b0 – Read Entire File to EDGB Cart RAM
+Address: $21B0
+High-level function for loading ROM files into the EDGB's cartridge SRAM/Flash:
+
+Opens the file.
+Reads data sector-by-sector.
+Uses the FPGA buffer sector addressing to stream data directly into cart memory (for loading game ROMs).
+Handles files larger than the buffer window by paging through buffer sectors.
+
+
+4. File Write / Create Operations
+Call_000_2240 – Allocate New Cluster
+Address: $2240
+Scans the FAT table for a free cluster (entry value = $0000):
+
+Starts searching from the last allocated cluster (to avoid fragmentation).
+Reads FAT sectors sequentially.
+Checks each entry for $0000.
+When found, marks it as end-of-chain (FFFF for FAT16, 0FFFFFFF for FAT32).
+Updates the FSInfo sector (if FAT32) with the new free cluster count and last-allocated cluster.
+Returns the newly allocated cluster number.
+Call_000_22c0 – Extend Cluster Chain
+Address: $22C0
+Appends a new cluster to an existing chain:
+
+Follows the FAT chain from the given starting cluster to find the last cluster (the one with the end-of-chain marker).
+Allocates a new cluster.
+Writes the new cluster number into the FAT entry of the previous last cluster (linking them).
+Call_000_2330 – Create Directory Entry
+Address: $2330
+Creates a new 32-byte directory entry in the current directory:
+
+Scans the directory for an empty slot ($00 or $E5 first byte).
+If no empty slot exists, extends the directory by allocating a new cluster and linking it.
+Fills in the 32-byte entry:
+8.3 filename
+Attributes
+First cluster (high and low words)
+File size (0 for new files/directories)
+Creation/modification time/date
+Writes the modified sector back to SD.
+Call_000_23b0 – Create File
+Address: $23B0
+
+Allocates a cluster for the new file.
+Creates a directory entry with the given filename, the allocated cluster, size 0, and Archive attribute.
+Returns a handle to the new file.
+Call_000_23f0 – Create Directory (Mkdir)
+Address: $23F0
+
+Allocates a cluster for the new directory.
+Creates a directory entry with the Directory attribute (bit 4 set, $10).
+Initializes the new directory's first cluster with "." and ".." entries:
+"." points to itself (the new cluster).
+".." points to the parent directory cluster.
+Fills the rest of the cluster with $00 (empty entries).
+Writes the initialized sector(s) back to SD.
+Call_000_2460 – Write File Data
+Address: $2460
+Writes data to an open file:
+
+Similar to Read but in reverse: copies bytes from RAM to the sector buffer, then writes the buffer to SD.
+Handles sector/cluster boundary crossings (extending the cluster chain as needed).
+Updates the file size in the directory entry when done.
+Call_000_24e0 – Close/Flush File
+Address: $24E0
+
+If any buffered data hasn't been written, flushes it to SD.
+Updates the directory entry with the final file size.
+Writes the directory sector back to SD.
+5. File Browser UI Integration
+Call_000_0800 – Main Menu / File Browser Entry
+Address: $0800
+The top-level function for the file browser:
+
+Calls the FAT mount function.
+Navigates to the "/EDGB" directory (or root if it doesn't exist).
+Calls the directory enumeration function to populate the file list.
+Renders the list on screen.
+Handles input (up/down scrolling, A to select, B to go back/up).
+File Selection Flow
+When the user selects a file:
+
+If it's a directory → calls Change Directory and re-enumerates.
+If it's a .gb or .gbc file → calls the ROM loading function to stream it into cart RAM, then starts it.
+If it's a save file → handled specially for save management.
+
+
+
+Important Notes
+SDCC Calling Convention: Parameters are pushed onto the stack right-to-left. Return values are in E (8-bit), DE (16-bit), or DE:HL (32-bit). Some small functions use registers directly.
+
+Buffer Window: The BE00−BFFF window is only 512 bytes. The sBufferSectorLow/High registers select which page of the FPGA's larger buffer is visible. This is crucial for large file transfers.
+
+Sector Caching: The driver appears to cache the last-read FAT sector to avoid redundant SD reads when walking a cluster chain (sequential clusters often share the same FAT sector).
+
+Long Filenames: LFN entries are detected (attribute $0F) and appear to be parsed for display in the file browser, but the filesystem write operations (create file/dir) only generate short 8.3 names.
+
+Error Handling: Most functions set or clear the carry flag to indicate success/failure, and some store error codes in a WRAM variable.
