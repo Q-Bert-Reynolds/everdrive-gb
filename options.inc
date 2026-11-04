@@ -3,7 +3,7 @@
 ;   rgbasm -D KEYBOARD=0 ...
 ; or via make:
 ;   make KEYBOARD=0
-; `make original` turns all of them off, which reproduces GBC-OS-v1.04.bin
+; `make original` turns all of them off, which reproduces GBC-OS-v1.06.bin
 ; byte for byte.
 
 ; CUSTOM_COLORS: use the palette in colors.asm instead of the stock

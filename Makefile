@@ -7,8 +7,8 @@ FONT ?= 1
 KEYBOARD ?= 1
 ASMFLAGS = -D CUSTOM_COLORS=$(COLORS) -D CUSTOM_FONT=$(FONT) -D KEYBOARD=$(KEYBOARD)
 
-# md5 of the stock GBC-OS-v1.04.bin
-ORIGINAL_MD5 = ab0e514e2c3dbd13197e59cc89958cd0
+# md5 of the stock GBC-OS-v1.06.bin
+ORIGINAL_MD5 = f200a1c6417323274e30ddf6ce5ec263
 
 all: GBCOS.bin
 
@@ -19,7 +19,7 @@ else
 	open GBCOS.gb
 endif
 
-# Unmodified v1.04, byte for byte
+# Unmodified v1.06, byte for byte
 original: GBCOS_original.bin
 
 .PHONY: all original clean FORCE
@@ -48,8 +48,8 @@ GBCOS_original.o: $(SOURCES) $(IMAGE_DEPS)
 GBCOS_original.bin: GBCOS_original.o
 	rgblink -p 0xff -n GBCOS_original.sym -m GBCOS_original.map -o $@ $<
 	@md5sum $@ | grep -q $(ORIGINAL_MD5) \
-		&& echo "$@ matches GBC-OS-v1.04.bin" \
-		|| (echo "$@ does NOT match GBC-OS-v1.04.bin" && false)
+		&& echo "$@ matches GBC-OS-v1.06.bin" \
+		|| (echo "$@ does NOT match GBC-OS-v1.06.bin" && false)
 
 clean:
 	rm -f GBCOS.o GBCOS.bin GBCOS.sym GBCOS.map

@@ -17,6 +17,7 @@ DEF sI2CInterfaceC    EQU $bd0c
 DEF sI2CInterfaceD    EQU $bd0d
 DEF sI2CInterfaceE    EQU $bd0e
 DEF sI2CInterfaceF    EQU $bd0f
+DEF sRegBD20          EQU $bd20;new in v1.06
 DEF sBufferWindow     EQU $be00;$be00 - $bfff
 DEF sIO               EQU $bf00;$bf00 - $bf32... overlaps with buffer window
 DEF sGBCFlags         EQU $bf4d
@@ -24,7 +25,7 @@ DEF sGBCFlags         EQU $bf4d
 ; (indirect function call trampoline jp hl and math routines) 
 
 ;WRAM
-DEF wGamepadState EQU $c2b0
-  ;$c2b3 selected line?
-  ;$c2b5 last button state?
+DEF wGamepadState EQU $c2b1;$c2b0 in v1.04 (v1.06 inserts a byte before $c2ad)
+  ;$c2b4 selected line?
+  ;$c2b6 last button state?
 
