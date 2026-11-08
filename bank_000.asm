@@ -505,7 +505,7 @@ Cart_LaunchGame::
   pop de
   pop de
   ld a, [sStreamingConfig]
-  and $20
+  and $20;keep bit 5 (Sys Button setting?)
   or $08
   ld [sStreamingConfig], a
   ld a, $00
@@ -559,14 +559,14 @@ OS_CallFarSRAM::
   ret
 
 
-Call_000_04a8:
+DisableStreaming:
   ld a, [sStreamingConfig]
   and $fd
   ld [sStreamingConfig], a
   ret
 
 
-Call_000_04b1:
+EnableStreaming:
   ld a, [sStreamingConfig]
   or $02
   ld [sStreamingConfig], a
@@ -996,7 +996,7 @@ VBLInterrupt:
   ld [sEDGBUnlock], a
   ld a, $04
   ld [sStreamingConfig], a
-  ld [$0620], sp
+  ld [sSavedSP], sp
   ld sp, $066e
   call StoreScreenSettings
   and $00
@@ -1006,45 +1006,45 @@ VBLInterrupt:
   ldh [rSVBK], a
   ld a, $3e
   ld [sBufferSectorHigh], a
-  call Call_000_06af
-  call Call_000_06e3
-  call Call_000_0713
-  call Call_000_0751
-  call Call_000_0948
+  call SaveGameStateHeader
+  call SaveDisplayState
+  call SaveBankedState
+  call SaveCGBState
+  call RestoreDisplayState
   ld sp, $dfff
   call SetInterrupts
-  jp Jump_000_0a88
+  jp ResumeFromSnapshot
 
 
-Call_000_06af:
+SaveGameStateHeader:
   ld a, $40
   ld [sBufferSectorLow], a
-  call Call_000_09af
+  call ClearBufferWindow
   ld hl, sBufferWindow
   ld a, [SaveText];[$065a]
   ld [hl+], a
-  ld a, [$065b]
+  ld a, [SaveText+1]
   ld [hl+], a
-  ld a, [$065c]
+  ld a, [SaveText+2]
   ld [hl+], a
-  ld a, [$065d]
+  ld a, [SaveText+3]
   ld [hl+], a
-  ld a, [$0620]
+  ld a, [sSavedSP]
   ld [hl+], a
-  ld a, [$0621]
+  ld a, [sSavedSP+1]
   ld [hl+], a
-  ld a, [$bd14];_SRAM+$1d14
+  ld a, [sSavedMapperRegs];_SRAM+$1d14
   ld [hl+], a
-  ld a, [$bd15]
+  ld a, [sSavedMapperRegs+1]
   ld [hl+], a
-  ld a, [$bd16]
+  ld a, [sSavedMapperRegs+2]
   ld [hl+], a
-  ld a, [$bd17]
+  ld a, [sSavedMapperRegs+3]
   ld [hl+], a
   ret
 
 
-Call_000_06e3:
+SaveDisplayState:
   ld a, $41
   ld [sBufferSectorLow], a
   ld de, _VRAM
@@ -1072,16 +1072,16 @@ Call_000_06e3:
   ret
 
 
-Call_000_0713:
+SaveBankedState:
   and $01
   ldh [rSVBK], a
-  call Call_000_079a
+  call GetSaveStatePageCount
   ld de, $0000
 
 jr_000_071d:
   push bc
   call CopyDEtoBD02
-  call Call_000_04b1
+  call EnableStreaming
   ld hl, _RAM
   ld c, $10
   call CopyEndOfSRAMtoHL
@@ -1091,7 +1091,7 @@ jr_000_071d:
   ld d, $3e
   ld e, a
   call CopyDEtoBD02
-  call Call_000_04a8
+  call DisableStreaming
   ld de, _RAM
   ld c, $10
   call CopyDEtoEndOfSRAM
@@ -1106,11 +1106,11 @@ jr_000_071d:
   ret
 
 
-Call_000_0751:
+SaveCGBState:
   ld a, $a2
   ld [sBufferSectorLow], a
-  call Call_000_09af
-  call Call_000_07af
+  call ClearBufferWindow
+  call DetectCGBMode
   ld hl, sBufferWindow
 
 jr_000_075f:
@@ -1154,15 +1154,15 @@ jr_000_0789:
   ret
 
 
-Call_000_079a:
+GetSaveStatePageCount:
   ld c, $01
   ld a, [$01f3]
   cp $00
-  jr z, jr_000_07a5
+  jr z, .done
 
   ld c, $04
 
-jr_000_07a5:
+.done:
   ret
 
 
@@ -1174,7 +1174,7 @@ CopyDEtoBD02:
   ret
 
 
-Call_000_07af:
+DetectCGBMode:
   ld a, 1
   ldh [rVBK], a
   ldh a, [rVBK]
@@ -1197,25 +1197,25 @@ Call_000_07af:
   ret
 
 
-Call_000_07ce:
+RestoreSnapshotState:
   di
   ld sp, $066e
   ld a, $04
   ld [sStreamingConfig], a
   ld a, $3e
   ld [sBufferSectorHigh], a
-  call Call_000_0948
-  call Call_000_086c
-  call Call_000_0844
+  call RestoreDisplayState
+  call RestoreBankedState
+  call RestoreDisplayBuffers
   call StoreScreenSettings
-  call Call_000_0948
-  call Call_000_08cb
+  call RestoreDisplayState
+  call RestoreCGBState
   call RestoreScreenSettings
-  call Call_000_0814
-  jp LoopForever2
+  call RestoreMapperState
+  jp OSIdleLoop
 
 
-jr_000_07f7:
+ResumeFromSavedCartState:
   ld a, $02
   ld [sRegBD09], a
   ld a, $00
@@ -1233,7 +1233,7 @@ jr_000_07f7:
   pop af
   jp VBlankVector
 
-Call_000_0814:
+RestoreMapperState:
   ld a, $40
   ld [sBufferSectorLow], a
   ld a, $00
@@ -1255,9 +1255,9 @@ Call_000_0814:
   ld a, [hl+]
   ld [$2100], a
   ld [rROMB0], a
-  jr jr_000_07f7
+  jr ResumeFromSavedCartState
 
-Call_000_0844:
+RestoreDisplayBuffers:
   ld a, $41
   ld [sBufferSectorLow], a
   ld hl, _VRAM
@@ -1276,16 +1276,16 @@ Call_000_0844:
   ret
 
 
-Call_000_086c:
+RestoreBankedState:
   and $01
   ldh [rSVBK], a
-  call Call_000_079a
-  ld de, $3e62
+  call GetSaveStatePageCount
+  ld de, sSavedScreenState
 
 jr_000_0876:
   push bc
   call CopyDEtoBD02
-  call Call_000_04a8
+  call DisableStreaming
   ld hl, _RAM
   ld c, $10
   call CopyEndOfSRAMtoHL
@@ -1294,7 +1294,7 @@ jr_000_0876:
   ld d, $00
   ld e, a
   call CopyDEtoBD02
-  call Call_000_04b1
+  call EnableStreaming
   ld de, _RAM
   ld c, $10
   call CopyDEtoEndOfSRAM
@@ -1308,11 +1308,11 @@ jr_000_0876:
 
   ld a, $3e
   ld [sBufferSectorHigh], a
-  call Call_000_04a8
+  call DisableStreaming
   ret
 
 
-Call_000_08b0:
+RestoreInterruptState:
   ldh a, [rIE]
   ld b, a
   ld a, $61
@@ -1333,9 +1333,9 @@ Call_000_08b0:
   ret
 
 
-Call_000_08cb:
-  call Call_000_07af
-  call Call_000_08b0
+RestoreCGBState:
+  call DetectCGBMode
+  call RestoreInterruptState
   ld a, $a2
   ld [sBufferSectorLow], a
   ld hl, sBufferWindow
@@ -1409,7 +1409,7 @@ RestoreScreenSettings:
   ret
 
 
-Call_000_0948:
+RestoreDisplayState:
   ld a, $00
   ldh [rLCDC], a
   ldh [rVBK], a
@@ -1417,14 +1417,14 @@ Call_000_0948:
   ldh [rSVBK], a
   ret
 
-DoWeEverGetHere:;is it data?
+SnapshotFallback:
   ld a, $00
   ld [sCartMapperMode], a
   ld a, $04
   ld [sRegBD09], a
   ld a, $00
   ld [sRegBD09], a
-  jp LoopForever2
+  jp OSIdleLoop
 
 
 CopyEndOfSRAMtoHL::;hl = address, c = count
@@ -1494,24 +1494,24 @@ CopySRAMtoIO:
   ld [bc], a
   jr .loopTable
 
-Call_000_09af:
+ClearBufferWindow:
   ld hl, sBufferWindow
   ld a, $ff
   ld c, $80
 
-jr_000_09b6:
+.fill:
   ld [hl+], a
   ld [hl+], a
   ld [hl+], a
   ld [hl+], a
   dec c
-  jr nz, jr_000_09b6
+  jr nz, .fill
 
   ret
 
 
-LoopForever2::
-  jr LoopForever2
+OSIdleLoop:
+  jr OSIdleLoop
 
 SwapABFlag:: DB 0;nonzero swaps the A and B buttons, see GetInput
 
@@ -1656,7 +1656,7 @@ InitializeOS::;$0a43
   ld a, $01
   push af
   inc sp
-  call Call_000_1e04
+  call InitializeMenuDisplayState
   inc sp
   ld de, OSInitText
   push de
@@ -1670,7 +1670,7 @@ InitializeOS::;$0a43
 
   push af
   inc sp
-  call Call_000_1dd0
+  call InvokeBankedOSRoutine
   inc sp
 .sinkhole:
   jr .sinkhole
@@ -1686,7 +1686,7 @@ InitializeOS::;$0a43
     ld d, e
     push de
     inc sp
-    call Call_000_1dd0
+    call InvokeBankedOSRoutine
     inc sp
   jr .mainLoop
   ret
@@ -1694,7 +1694,7 @@ InitializeOS::;$0a43
 OSInitText::
     db "OS init...", 0
 
-Jump_000_0a88:
+ResumeFromSnapshot:
   ld hl, $fde3
   add hl, sp
   ld sp, hl
@@ -1832,7 +1832,7 @@ jr_000_0aea:
   xor a
   push af
   inc sp
-  call Call_000_1e04
+  call InitializeMenuDisplayState
   inc sp
   ld hl, $021c
   add hl, sp
@@ -1853,19 +1853,19 @@ jr_000_0aea:
   ld a, e
   or a
   jr nz, @ - 5
-  call Call_000_214d
+  call ClearShadowScreen
   xor a
   push af
   inc sp
-  call Call_000_2268
+  call SetMenuTextMode
   inc sp
   ld hl, $0800
   push hl
-  call Call_000_2209
+  call SetMenuCursorAddress
   add sp, $02
   ld de, LoadingText
   push de
-  call Call_000_2193
+  call RenderMenuLabel
   add sp, $02
   call DrawToScreen0
   ld hl, $020c
@@ -1896,14 +1896,14 @@ jr_000_0c48:
   ld [hl], $00
 
 Jump_000_0c61:
-  call Call_000_04a8
+  call DisableStreaming
   ld hl, $020b
   add hl, sp
   dec hl
   ld e, [hl]
   inc hl
   ld d, [hl]
-  ld hl, $3e40
+  ld hl, sSaveStateWindow
   add hl, de
   ld c, l
   ld b, h
@@ -1919,7 +1919,7 @@ Jump_000_0c61:
   push de
   call BufferWindow_CopyToHL
   add sp, $02
-  call Call_000_04b1
+  call EnableStreaming
   ld hl, $020b
   add hl, sp
   dec hl
@@ -1966,7 +1966,7 @@ Jump_000_0cc2:
   ld a, [hl]
   dec a
   jp nz, $0cc5
-  call Call_000_04b1
+  call EnableStreaming
   ld hl, $0040
   push hl
   call Cart_SetSectorPointerFromStack
@@ -1983,7 +1983,7 @@ Jump_000_0cc2:
   ld a, e
   or a
   jr nz, @ + 25
-  call Call_000_214d
+  call ClearShadowScreen
   ld hl, $021a
   add hl, sp
   dec hl
@@ -1996,7 +1996,7 @@ Jump_000_0cc2:
   push de
   call Bank1Function67E6
   add sp, $03
-  call Call_000_07ce
+  call RestoreSnapshotState
   ld hl, sp + $0a
   ld a, l
   ld d, h
@@ -2015,7 +2015,7 @@ Jump_000_0cc2:
   ld [hl], $00
   inc hl
   ld [hl], $00
-  call Call_000_04b1
+  call EnableStreaming
   ld hl, $020b
   add hl, sp
   dec hl
@@ -2038,14 +2038,14 @@ Jump_000_0cc2:
   push de
   call BufferWindow_CopyToHL
   add sp, $02
-  call Call_000_04a8
+  call DisableStreaming
   ld hl, $020b
   add hl, sp
   dec hl
   ld e, [hl]
   inc hl
   ld d, [hl]
-  ld hl, $3e40
+  ld hl, sSaveStateWindow
   add hl, de
   ld c, l
   ld b, h
@@ -2086,7 +2086,7 @@ Jump_000_0cc2:
   call EntryPoint
 
 jr_000_0cd3:
-  call Call_000_07ce
+  call RestoreSnapshotState
   ld hl, $021d
   add hl, sp
   ld sp, hl
@@ -2166,7 +2166,7 @@ jr_000_0d9e:
   ld a, $35
   push af
   inc sp
-  call Call_000_1dd0
+  call InvokeBankedOSRoutine
   inc sp
   jr jr_000_0db5
 
@@ -2254,7 +2254,7 @@ jr_000_0dfe:
   pop bc
   push bc
   inc sp
-  call Call_000_1dd0
+  call InvokeBankedOSRoutine
   inc sp
   ld a, [$c008]
   or a
@@ -2319,7 +2319,7 @@ Call_000_0e53:
   push hl
   call Cart_SetSectorPointerFromStack
   add sp, $02
-  call Call_000_04b1
+  call EnableStreaming
   ld hl, sp+$01
   ld [hl], $00
 
@@ -3993,20 +3993,20 @@ Bank0Address1742::
   nop
 
 Call_000_1747:
-  call Call_000_214d
+  call ClearShadowScreen
   ld a, $07
   push af
   inc sp
-  call Call_000_21e0
+  call SetMenuCursor
   inc sp
   xor a
   push af
   inc sp
-  call Call_000_2268
+  call SetMenuTextMode
   inc sp
   ld de, Bank0Address1765
   push de
-  call Call_000_2193
+  call RenderMenuLabel
   add sp, $02
   jp DrawToScreen0
 
@@ -4495,7 +4495,7 @@ jr_000_19c3:
   or a
   jp nz, Jump_000_1aa7
 
-  call Call_000_04a8
+  call DisableStreaming
   ld de, $d69f
   ld a, [de]
   ld c, a
@@ -4610,7 +4610,7 @@ jr_000_1a66:
 
 jr_000_1a73:
   call Bank1Function67C1
-  call Call_000_214d
+  call ClearShadowScreen
   call DrawToScreen0
   call WaitVBL
   ld a, [$c030]
@@ -4790,19 +4790,19 @@ Jump_000_1aa7:
   ld [hl], $05
   inc hl
   ld [hl], $00
-  call Call_000_214d
+  call ClearShadowScreen
   xor a
   push af
   inc sp
-  call Call_000_2268
+  call SetMenuTextMode
   inc sp
   ld hl, $0800
   push hl
-  call Call_000_2209
+  call SetMenuCursorAddress
   add sp, $02
   ld de, Bank0Address1DC0
   push de
-  call Call_000_2193
+  call RenderMenuLabel
   add sp, $02
   call DrawToScreen0
   ld hl, $00fd
@@ -5274,7 +5274,7 @@ Bank0Address1DC0::
   ld l, $2e
   ld l, $00
 
-Call_000_1dd0:
+InvokeBankedOSRoutine:
   add sp, -$07
   ld hl, sp+$00
   ld e, l
@@ -5317,7 +5317,7 @@ Call_000_1dd0:
   ret
 
 
-Call_000_1e04:
+InitializeMenuDisplayState:
   add sp, -$0f
 
 jr_000_1e06:
@@ -5547,7 +5547,7 @@ jr_000_1f35:
   sbc $03
   jp c, Jump_000_1ef6
 
-  call Call_000_214d
+  call ClearShadowScreen
   call Bank1Function6AF2
   call DrawToScreen0
   ld hl, rLCDC
@@ -5979,7 +5979,7 @@ Jump_000_213f:
   ret
 
 
-Call_000_214d:
+ClearShadowScreen:
   ld hl, $c2af
   ld [hl], $00
   inc hl
@@ -6030,7 +6030,7 @@ LoadOSInitText:
   ret
 
 
-Call_000_2193:
+RenderMenuLabel:
   ld hl, $c2af
   ld a, [hl]
   add $14
@@ -6055,7 +6055,7 @@ Call_000_2193:
   push hl
   push bc
   push hl
-  call Call_000_2ba2
+  call StringLength
   add sp, $02
   ld c, e
   ld a, $12
@@ -6090,7 +6090,7 @@ jr_000_21d5:
   ret
 
 
-Call_000_21e0:
+SetMenuCursor:
   ld hl, sp+$02
   ld b, [hl]
 
@@ -6126,7 +6126,7 @@ jr_000_21f6:
   ret
 
 
-Call_000_2209:
+SetMenuCursorAddress:
   add sp, -$02
   ld hl, sp+$04
   ld a, [hl]
@@ -6169,7 +6169,7 @@ Call_000_2209:
   ret
 
 
-Call_000_223e:
+GetSelectedMenuEntry:
   ld hl, $0014
   push hl
   ld hl, $c2af
@@ -6190,7 +6190,7 @@ Call_000_223e:
   ld a, [hl]
   push af
   inc sp
-  call Call_000_2209
+  call SetMenuCursorAddress
   add sp, $02
   pop bc
   pop hl
@@ -6202,7 +6202,7 @@ Call_000_223e:
   ret
 
 
-Call_000_2268:
+SetMenuTextMode:
   push hl
   ld hl, sp+$04
   ld a, [hl]
@@ -6222,7 +6222,7 @@ Call_000_2272:
   ld a, [hl]
   push af
   inc sp
-  call Call_000_2209
+  call SetMenuCursorAddress
   add sp, $02
   ld hl, sp+$0b
   ld c, [hl]
@@ -8056,7 +8056,7 @@ jr_000_2b9f:
   ret
 
 
-Call_000_2ba2:
+StringLength:
   dec sp
   ld hl, sp+$00
   ld [hl], $00
@@ -8106,7 +8106,7 @@ jr_000_2bce:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_2ba2
+  call StringLength
   add sp, $02
   ld b, e
   push bc
@@ -8115,7 +8115,7 @@ jr_000_2bce:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_2ba2
+  call StringLength
   add sp, $02
   pop bc
   ld c, e
@@ -8611,7 +8611,7 @@ Call_000_2e08:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_2ba2
+  call StringLength
   add sp, $02
   ld b, e
   ld hl, sp+$06
@@ -12061,7 +12061,7 @@ Call_000_3f20:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_2ba2
+  call StringLength
   add sp, $02
   pop bc
   dec e
@@ -12116,7 +12116,7 @@ Call_000_3f5f:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_2ba2
+  call StringLength
   add sp, $02
   ld b, e
   push bc
@@ -12152,7 +12152,7 @@ Call_000_3f5f:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_2ba2
+  call StringLength
   add sp, $02
   ld c, e
   ld hl, sp+$02

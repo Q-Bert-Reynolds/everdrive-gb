@@ -23,6 +23,7 @@ music/*.bak
 *.2bpp
 *.sav
 *.bin
+*.BIN
 
 # Tiled map editor
 *.tiled-session

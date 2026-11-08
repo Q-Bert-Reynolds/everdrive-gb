@@ -1,28 +1,45 @@
 DEF EDGB_UNLOCK_KEY   EQU $a5 
 
 ;SRAM
-DEF sSPIData          EQU $bd00
-DEF sSPIControl       EQU $bd01
-DEF sBufferSectorLow  EQU $bd02
-DEF sBufferSectorHigh EQU $bd03
-DEF sRegBD04          EQU $bd04
-DEF sRegBD05          EQU $bd05
-DEF sStreamingConfig  EQU $bd06
-DEF sCartMapperMode   EQU $bd07
-DEF sCurrentBank      EQU $bd08
-DEF sRegBD09          EQU $bd09
-DEF sEDGBUnlock       EQU $bd0a
-DEF sRegBD0B          EQU $bd0b
-DEF sI2CInterfaceC    EQU $bd0c
-DEF sI2CInterfaceD    EQU $bd0d
-DEF sI2CInterfaceE    EQU $bd0e
-DEF sI2CInterfaceF    EQU $bd0f
+DEF sSPIData           EQU $bd00 ; SPI byte transfer register
+DEF sSPIControl        EQU $bd01 ; SPI control/CS clock mode register
+DEF sBufferSectorLow   EQU $bd02 ; 512-byte sector pointer low byte
+DEF sBufferSectorHigh  EQU $bd03 ; 512-byte sector pointer high byte
+
+; Launch/game configuration registers
+DEF sGameROMMask       EQU $bd04 ; ROM bank mask for the launched game
+DEF sGameRAMMask       EQU $bd05 ; RAM bank mask for the launched game
+DEF sStreamingConfig   EQU $bd06 ; streaming and OS-mode config bits
+DEF sCartMapperMode    EQU $bd07 ; cartridge mapper mode for the target game
+DEF sCurrentBank       EQU $bd08 ; current SRAM bank in the windowed OS map
+DEF sCartSwitch        EQU $bd09 ; cart-switch / resume-reboot latch bits
+DEF sEDGBUnlock       EQU $bd0a ; EverDrive unlock key register
+DEF sExtraControl      EQU $bd0b ; spare control register / reserved slot
+
+; I2C / RTC expansion registers
+DEF sI2CInterfaceC    EQU $bd0c ; I2C bus control/status
+DEF sI2CInterfaceD    EQU $bd0d ; I2C bus data register
+DEF sI2CInterfaceE    EQU $bd0e ; I2C bus status / scratch register
+DEF sI2CInterfaceF    EQU $bd0f ; I2C bus scratch register
+
 DEF sRegBD20          EQU $bd20;new in v1.06
-DEF sBufferWindow     EQU $be00;$be00 - $bfff
-DEF sIO               EQU $bf00;$bf00 - $bf32... overlaps with buffer window
-DEF sGBCFlags         EQU $bf4d
+DEF sBufferWindow     EQU $be00;$be00 - $bfff ; 512-byte SRAM window used by the OS snapshot routines
+DEF sIO               EQU $bf00;$bf00 - $bf32... overlaps with buffer window ; shadowed IO register window
+DEF sGBCFlags         EQU $bf4d ; GBC detection / speed flags
+
+; backwards-compatible aliases
+DEF sRegBD04          EQU sGameROMMask
+DEF sRegBD05          EQU sGameRAMMask
+DEF sRegBD09          EQU sCartSwitch
+DEF sRegBD0B          EQU sExtraControl
 ; The calls to $b805 and $a309 are SDCC compiler runtime helpers placed in RAM.
 ; (indirect function call trampoline jp hl and math routines) 
+
+;VBlank save/restore snapshot addresses
+DEF sSavedSP             EQU $0620 ; stack pointer saved before the OS snapshot
+DEF sSavedMapperRegs     EQU $bd14 ; cart mapper registers saved in SRAM during a pause
+DEF sSaveStateWindow     EQU $3e40 ; save sector window used for resumed game state
+DEF sSavedScreenState    EQU $3e62 ; first block copied back during restore
 
 ;WRAM
 DEF wGamepadState EQU $c2b1;$c2b0 in v1.04 (v1.06 inserts a byte before $c2ad)

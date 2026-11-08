@@ -3936,7 +3936,7 @@ jr_001_531e:
   push hl
   push bc
   push hl
-  call Call_000_2ba2
+  call StringLength
   add sp, $02
   ld hl, sp + $0f
   ld [hl], e
@@ -5639,7 +5639,7 @@ Jump_001_5b46:
 
 Call_001_5b7f:
   add sp, -$02
-  call Call_000_04b1
+  call EnableStreaming
   ld hl, $00ff
   push hl
   call Cart_SetSectorPointerFromStack
@@ -7212,7 +7212,7 @@ Bank1Function6334::
   ld [hl], $01
   inc hl
   ld [hl], $01
-  call Call_000_04b1
+  call EnableStreaming
   ld a, [$c035]
   or a
   jr nz, jr_001_634a
@@ -7446,7 +7446,7 @@ jr_001_6468:
   ret
 
 Bank1Function6471::
-  call Call_000_04b1
+  call EnableStreaming
   ld de, $c03b
   ld a, [de]
   ld c, a
@@ -7703,7 +7703,7 @@ Call_001_656f:
 
 jr_001_65bb:
   push de
-  call Call_000_04b1
+  call EnableStreaming
   pop de
   ld hl, sp+$00
   ld c, l
@@ -7792,7 +7792,7 @@ Call_001_65d6:
 
 jr_001_6626:
   push de
-  call Call_000_04b1
+  call EnableStreaming
   pop de
   ld hl, sp+$00
   ld c, l
@@ -8203,7 +8203,7 @@ Jump_001_67ff:
   jr nc, jr_001_683a
 
   push bc
-  call Call_000_2ba2
+  call StringLength
   add sp, $02
   ld c, e
   ld hl, sp+$12
@@ -8315,7 +8315,7 @@ jr_001_687e:
   pop bc
   push bc
   push de
-  call Call_000_223e
+  call GetSelectedMenuEntry
   ld a, e
   pop de
   pop bc
@@ -8375,7 +8375,7 @@ Jump_001_68ef:
   xor a
   push af
   inc sp
-  call Call_000_2209
+  call SetMenuCursorAddress
   add sp, $02
   jr jr_001_6913
 
@@ -8388,7 +8388,7 @@ jr_001_6904:
   ld a, [hl]
   push af
   inc sp
-  call Call_000_2209
+  call SetMenuCursorAddress
   add sp, $02
 
 jr_001_6913:
@@ -8414,7 +8414,7 @@ Jump_001_6917:
   xor a
   push af
   inc sp
-  call Call_000_2268
+  call SetMenuTextMode
   inc sp
   jr jr_001_693d
 
@@ -8422,7 +8422,7 @@ jr_001_6935:
   ld a, $80
   push af
   inc sp
-  call Call_000_2268
+  call SetMenuTextMode
   inc sp
 
 jr_001_693d:
@@ -8452,7 +8452,7 @@ jr_001_693d:
   jr nz, jr_001_6964
 
   push bc
-  call Call_000_2193
+  call RenderMenuLabel
   add sp, $02
   jr jr_001_696a
 
@@ -8470,7 +8470,7 @@ jr_001_696a:
   ld a, $01
   push af
   inc sp
-  call Call_000_21e0
+  call SetMenuCursor
   inc sp
 
 jr_001_6978:
@@ -8669,7 +8669,7 @@ jr_001_6a5a:
   ld a, $80
   push af
   inc sp
-  call Call_000_2268
+  call SetMenuTextMode
   inc sp
   pop bc
   push bc
@@ -8700,7 +8700,7 @@ jr_001_6a5a:
   xor a
   push af
   inc sp
-  call Call_000_2209
+  call SetMenuCursorAddress
   add sp, $02
   pop bc
   push bc
@@ -8709,7 +8709,7 @@ jr_001_6a5a:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_2193
+  call RenderMenuLabel
   add sp, $02
   pop bc
   ld b, c
@@ -8762,7 +8762,7 @@ jr_001_6a5a:
   ld a, [hl]
   push af
   inc sp
-  call Call_000_2209
+  call SetMenuCursorAddress
   add sp, $02
   ld hl, sp+$00
   ld e, [hl]
@@ -8819,7 +8819,7 @@ jr_001_6b28:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_2ba2
+  call StringLength
   add sp, $02
   ld hl, sp+$00
   ld [hl], e
@@ -8966,7 +8966,7 @@ Jump_001_6bdb:
   adc $00
   ld b, a
   push bc
-  call Call_000_2ba2
+  call StringLength
   add sp, $02
   ld hl, $d7d2
   ld a, [hl]

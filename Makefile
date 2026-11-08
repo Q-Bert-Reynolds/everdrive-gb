@@ -7,20 +7,28 @@ FONT ?= 1
 KEYBOARD ?= 1
 ASMFLAGS = -D CUSTOM_COLORS=$(COLORS) -D CUSTOM_FONT=$(FONT) -D KEYBOARD=$(KEYBOARD)
 
-# md5 of the stock GBC-OS-v1.06.bin
+# Experimental launch values (decimal), see options.inc. Only passed when set.
+ifdef LAUNCH_BD06
+ASMFLAGS += -D LAUNCH_BD06_SET=$(LAUNCH_BD06)
+endif
+ifdef LAUNCH_BD09
+ASMFLAGS += -D LAUNCH_BD09=$(LAUNCH_BD09)
+endif
+
+# md5 of the stock GBC-OS-v1.06.BIN
 ORIGINAL_MD5 = f200a1c6417323274e30ddf6ce5ec263
 
-all: GBCOS.bin
+all: GBCOS.BIN
 
-	cp GBCOS.bin GBCOS.gb
+	cp GBCOS.BIN GBCOS.gb
 ifeq ($(OS), Windows_NT)
 	start "GBCOS.gb"
 else
-	open GBCOS.gb
+	gearboy GBCOS.gb
 endif
 
 # Unmodified v1.06, byte for byte
-original: GBCOS_original.bin
+original: GBCOS_original.BIN
 
 .PHONY: all original clean FORCE
 
@@ -34,7 +42,7 @@ original: GBCOS_original.bin
 GBCOS.o: $(SOURCES) $(IMAGE_DEPS) FORCE
 	rgbasm $(ASMFLAGS) -o GBCOS.o GBCOS.asm
 
-GBCOS.bin: GBCOS.o
+GBCOS.BIN: GBCOS.o
 	rgblink -p 0xff -n GBCOS.sym -m GBCOS.map -o $@ $<
 	rgbfix -Wno-overwrite -v -p 255 $@
 
@@ -45,13 +53,13 @@ GBCOS_original.o: $(SOURCES) $(IMAGE_DEPS)
 
 # No rgbfix: the header checksums are already in the source, and the stock
 # ROM's global checksum is wrong, so `rgbfix -v` would change it.
-GBCOS_original.bin: GBCOS_original.o
+GBCOS_original.BIN: GBCOS_original.o
 	rgblink -p 0xff -n GBCOS_original.sym -m GBCOS_original.map -o $@ $<
 	@md5sum $@ | grep -q $(ORIGINAL_MD5) \
-		&& echo "$@ matches GBC-OS-v1.06.bin" \
-		|| (echo "$@ does NOT match GBC-OS-v1.06.bin" && false)
+		&& echo "$@ matches GBC-OS-v1.06.BIN" \
+		|| (echo "$@ does NOT match GBC-OS-v1.06.BIN" && false)
 
 clean:
-	rm -f GBCOS.o GBCOS.bin GBCOS.sym GBCOS.map
-	rm -f GBCOS_original.o GBCOS_original.bin GBCOS_original.sym GBCOS_original.map
+	rm -f GBCOS.o GBCOS.BIN GBCOS.sym GBCOS.map
+	rm -f GBCOS_original.o GBCOS_original.BIN GBCOS_original.sym GBCOS_original.map
 	find . \( -iname '*.1bpp' -o -iname '*.2bpp' \) -exec rm {} +
