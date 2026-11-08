@@ -6759,7 +6759,7 @@ jr_003_5213:
     rst $38
     rst $38
     rst $38
-THEFUCKISTHIS::
+Bank003Addr6000:
     add sp, -$07
     ld hl, $bc00
     ld [hl], $00

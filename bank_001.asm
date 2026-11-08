@@ -7376,7 +7376,7 @@ Call_001_6402:
   ld b, d
   push de
   push bc
-  ld hl, $01f3
+  ld hl, SaveStatePageCount
   add hl, sp
   ld a, [hl+]
   ld h, [hl]
@@ -7384,7 +7384,7 @@ Call_001_6402:
   push hl
   ld hl, $c04d
   push hl
-  ld hl, $01f5
+  ld hl, Writable01f5
   add hl, sp
   ld a, [hl+]
   ld h, [hl]
@@ -7564,7 +7564,7 @@ Call_001_64fc:
   ld b, d
   push de
   push bc
-  ld hl, $01f1
+  ld hl, Writable01f1
   add hl, sp
   ld a, [hl+]
   ld h, [hl]
@@ -7572,7 +7572,7 @@ Call_001_64fc:
   push hl
   ld hl, $c04d
   push hl
-  ld hl, $01f3
+  ld hl, SaveStatePageCount
   add hl, sp
   ld a, [hl+]
   ld h, [hl]
