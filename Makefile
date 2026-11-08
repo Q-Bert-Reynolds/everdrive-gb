@@ -1,11 +1,10 @@
 IMAGE_DEPS = gfx/font.1bpp gfx/font_original.1bpp
-SOURCES = GBCOS.asm options.inc constants.asm colors.asm macros.inc hardware.inc bank_*.asm keyboard/*.asm
+SOURCES = GBCOS.asm options.inc constants.asm colors.asm macros.inc hardware.inc bank_*.asm
 
-# Feature toggles (1 = on, 0 = off), e.g. `make KEYBOARD=0`. See options.inc.
+# Feature toggles (1 = on, 0 = off), See options.inc.
 COLORS ?= 1
 FONT ?= 1
-KEYBOARD ?= 1
-ASMFLAGS = -D CUSTOM_COLORS=$(COLORS) -D CUSTOM_FONT=$(FONT) -D KEYBOARD=$(KEYBOARD)
+ASMFLAGS = -D CUSTOM_COLORS=$(COLORS) -D CUSTOM_FONT=$(FONT)
 
 # Experimental launch values (decimal), see options.inc. Only passed when set.
 ifdef LAUNCH_BD06
@@ -49,7 +48,7 @@ GBCOS.BIN: GBCOS.o
 	md5sum $@
 
 GBCOS_original.o: $(SOURCES) $(IMAGE_DEPS)
-	rgbasm -D CUSTOM_COLORS=0 -D CUSTOM_FONT=0 -D KEYBOARD=0 -o $@ GBCOS.asm
+	rgbasm -D CUSTOM_COLORS=0 -D CUSTOM_FONT=0 -o $@ GBCOS.asm
 
 # No rgbfix: the header checksums are already in the source, and the stock
 # ROM's global checksum is wrong, so `rgbfix -v` would change it.

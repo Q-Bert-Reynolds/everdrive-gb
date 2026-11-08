@@ -26,25 +26,11 @@ SECTION "VBlank", ROM0[$0040]
 VBlankVector:
   jp VBLInterrupt
 
-IF KEYBOARD
-SECTION "LCDC", ROM0[$0048]
-  reti
-
-SECTION "TimerOverflow", ROM0[$0050]
-  reti
-
-SECTION "Serial", ROM0[$0058]
-  jp SerialInterrupt
-
-SECTION "p1thru4", ROM0[$0060]
-  reti
-ELSE
 ; Unused vectors are $FF (rst $38). The reti at $38 returns to the next $FF,
 ; and the chain continues until it reaches the reti at $0066.
 SECTION "p1thru4", ROM0[$0060]
   DS 6, $ff
   reti
-ENDC
 
 SECTION "Header", ROM0[$0100]
   jp EntryPoint
@@ -92,57 +78,34 @@ EntryPoint:
   
   ld a, [CartSwitch]
 CheckCartSwitch:
-IF KEYBOARD
-  and a
-ELSE
   cp $00
-ENDC
   jr nz, CartSwitchPressed
 
 InitializeCart::
   ld sp, $dfff;end of ram
-IF KEYBOARD
-  xor a
-  ld [kb_detected], a
-ELSE
   ld a, $00
-ENDC
   ldh [rSVBK], a
   ldh [rVBK], a
   ld [sCartMapperMode], a; Cartridge mapper mode
   ld a, $04
-  ld [sRegBD09], a
-IF KEYBOARD
-  call SetupKeyboard
-ELSE
+  ld [sCartSwitch], a
   call SetInterrupts
-ENDC
   call InitializeOS
   jr EntryPoint
 
 SetInterrupts::;probably not the only thing this does
   ld a, $04
   ld [sStreamingConfig], a
-IF KEYBOARD
-  ld a, IEF_SERIAL
-  ldh [rIE], a;enable serial interrupt
-  xor a
-ELSE
   ld a, $00
   DB $ea
   DW rIE;ld [rIE], a (3-byte form) to disable all interrupts
-ENDC
   ld [sSPIControl], a; SPI Control: Assert CS (0), fast speed (0), auto-read disabled (0)
   ld a, $04
   ld [sCurrentBank], a; Select OS SRAM Bank 4
   ret
 
 CartSwitchPressed:
-IF KEYBOARD
-  xor a
-ELSE
   ld a, $00
-ENDC
   ld [CartSwitch], a
   ld a, $10
   ld [sStreamingConfig], a
@@ -509,7 +472,7 @@ Cart_LaunchGame::
   or $08
   ld [sStreamingConfig], a
   ld a, $00
-  ld [sRegBD09], a
+  ld [sCartSwitch], a
   ld a, $00
   ld [rRAMG], a
   ld [rROMB1], a
@@ -528,14 +491,14 @@ Jump_000_047e:
 Call_000_0481:
   ld hl, sp+$02
   ld a, [hl]
-  ld [sRegBD04], a
+  ld [sGameROMMask], a
   ret
 
 
 Call_000_0488:
   ld hl, sp+$02
   ld a, [hl]
-  ld [sRegBD05], a
+  ld [sGameRAMMask], a
   ret
 
 
@@ -1217,9 +1180,9 @@ RestoreSnapshotState:
 
 ResumeFromSavedCartState:
   ld a, $02
-  ld [sRegBD09], a
+  ld [sCartSwitch], a
   ld a, $00
-  ld [sRegBD09], a
+  ld [sCartSwitch], a
   pop hl
   pop de
   pop bc
@@ -1421,9 +1384,9 @@ SnapshotFallback:
   ld a, $00
   ld [sCartMapperMode], a
   ld a, $04
-  ld [sRegBD09], a
+  ld [sCartSwitch], a
   ld a, $00
-  ld [sRegBD09], a
+  ld [sCartSwitch], a
   jp OSIdleLoop
 
 
@@ -1595,39 +1558,6 @@ ClearC144toC2AB::
   ret
 
 UpdateInput::;puts button state in e
-IF KEYBOARD
-  call DetectKeyboard
-
-  ei
-REPT 6;to keep InitializeOS at $0a43
-  nop
-ENDR
-  ld a, P1F_GET_DPAD
-  ld hl, rP1
-  ld [hl], a
-REPT 4;multiple cycles to avoid button bounce
-  ld a, [hl];load dPad
-ENDR
-  and a, $F
-  swap a
-  ld e, a
-  ld a, P1F_GET_BTN
-  ld [hl], a
-REPT 4
-  ld a, [hl];load buttons
-ENDR
-  and a, $F
-  or e
-  cpl
-  ld e, a
-  ld a, P1F_GET_NONE
-  ld [hl], a
-  
-  ld hl, wGamepadState
-  ld [hl], e;store button state
-
-  ret
-ELSE
   ld a, P1F_GET_DPAD
   ldh [rP1], a
 REPT 4;multiple reads to avoid button bounce
@@ -1650,7 +1580,6 @@ ENDR
   ld a, P1F_GET_NONE
   ldh [rP1], a
   ret
-ENDC
 
 InitializeOS::;$0a43
   ld a, $01
@@ -5583,19 +5512,12 @@ jr_000_1f74:
   ret
 
 UIColors::
-IF CUSTOM_COLORS
   INCLUDE "colors.asm"
-ELSE
-  RGB 0,  0,  0 ;BackgroundColor
-  RGB 4,  31, 4 ;UnselectedTextColor
-  RGB 15, 15, 15;MenuColor
-  DW $ffff      ;SelectedTextColor (white; the original sets the unused bit 15)
-ENDC
+  nop
+  nop
+  nop
+  nop
 
-  nop
-  nop
-  nop
-  nop
 
 PutC2B2inE:
   ld hl, $c2b3
@@ -5639,13 +5561,8 @@ GetInput::;returns buttons in e
 
 .updateGamepad:
   call UpdateInput
-IF KEYBOARD
-  call ProcessKeyCodes;UpdateInput already stored the button state
-  nop
-ELSE
   ld hl, $c2b1
   ld [hl], e;store button state
-ENDC
   ld hl, SwapABFlag
   ld a, [hl]
   or a

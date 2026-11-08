@@ -13,7 +13,7 @@ DEF sStreamingConfig   EQU $bd06 ; streaming and OS-mode config bits
 DEF sCartMapperMode    EQU $bd07 ; cartridge mapper mode for the target game
 DEF sCurrentBank       EQU $bd08 ; current SRAM bank in the windowed OS map
 DEF sCartSwitch        EQU $bd09 ; cart-switch / resume-reboot latch bits
-DEF sEDGBUnlock       EQU $bd0a ; EverDrive unlock key register
+DEF sEDGBUnlock        EQU $bd0a ; EverDrive unlock key register
 DEF sExtraControl      EQU $bd0b ; spare control register / reserved slot
 
 ; I2C / RTC expansion registers
@@ -27,13 +27,15 @@ DEF sBufferWindow     EQU $be00;$be00 - $bfff ; 512-byte SRAM window used by the
 DEF sIO               EQU $bf00;$bf00 - $bf32... overlaps with buffer window ; shadowed IO register window
 DEF sGBCFlags         EQU $bf4d ; GBC detection / speed flags
 
-; backwards-compatible aliases
-DEF sRegBD04          EQU sGameROMMask
-DEF sRegBD05          EQU sGameRAMMask
-DEF sRegBD09          EQU sCartSwitch
-DEF sRegBD0B          EQU sExtraControl
-; The calls to $b805 and $a309 are SDCC compiler runtime helpers placed in RAM.
-; (indirect function call trampoline jp hl and math routines) 
+; The code sometimes calls into the OS runtime helper area in RAM, not a ROM routine.
+; These are SDCC-generated stubs / helper entry points and their exact addresses drift as
+; the OS is rebuilt, so the current build exposes them at $a13b, $a306, $a309, $b81d, and $b8b5.
+; The old "$b805" note is stale and does not match the current disassembly.
+DEF sSDCCRuntimeBranch  EQU $a13b ; helper branch target in the RAM runtime area
+DEF sSDCCRuntimeCall    EQU $a306 ; indirect-call / trampoline helper in RAM
+DEF sSDCCRuntimeHelper  EQU $a309 ; SDCC runtime helper entry used by generated code
+DEF sSDCCSharedHelperA  EQU $b81d ; common SDCC helper in the RAM runtime window
+DEF sSDCCSharedHelperB  EQU $b8b5 ; second common SDCC helper in the RAM runtime window
 
 ;VBlank save/restore snapshot addresses
 DEF sSavedSP             EQU $0620 ; stack pointer saved before the OS snapshot

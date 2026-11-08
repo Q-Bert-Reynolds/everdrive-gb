@@ -12,6 +12,3 @@ INCLUDE "bank_001.asm"
 INCLUDE "bank_002.asm"
 INCLUDE "bank_003.asm"
 INCLUDE "bank_004.asm"
-IF KEYBOARD
-INCLUDE "keyboard/keyboard.asm"
-ENDC
