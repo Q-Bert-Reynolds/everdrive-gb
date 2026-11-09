@@ -6,6 +6,7 @@ See [BANK_0.md](notes/BANK_0.md) for the bank 0 module map and named entry point
 and [OS_INTERFACE.md](notes/OS_INTERFACE.md) for the runtime flags and function table.
 See [MEMORY_LAYOUT.md](notes/MEMORY_LAYOUT.md) for the fixed OS region, banked
 8 KiB pages, and the rough bank 1-4 module map.
+See [PATHS.md](notes/PATHS.md) for path joining and save-file extension handling.
 
 To change colors, edit the RGB values (0 to 31) in [colors.asm](src/colors.asm).
 

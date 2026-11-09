@@ -760,10 +760,20 @@ ROM0 bank #0:
 	TOTAL EMPTY: $019e bytes
 
 ROMX bank #1:
-	SECTION: $4000-$407d ($007e bytes) ["ROM Bank 1 Data"]
-	         $4000 = BuildPathWithExtensionContinuation
-	         $401d = BuildPathKeepOriginalName
-	         $4046 = Bank1Data4030
+	SECTION: $4000-$407d ($007e bytes) ["Path extension continuation"]
+	         $4000 = BuildPathWriteShortExtension
+	         $4002 = BuildPathWriteShortExtension.nextExtensionCharacter
+	         $4012 = BuildPathWriteShortExtension.writeUppercaseCharacter
+	         $4018 = BuildPathWriteShortExtension.terminateShortName
+	         $401d = BuildPathReplaceDottedExtension
+	         $4023 = BuildPathReplaceDottedExtension.scanPathForDot
+	         $402f = BuildPathReplaceDottedExtension.advancePathCursor
+	         $4032 = BuildPathReplaceDottedExtension.storePathEnd
+	         $403d = BuildPathReplaceDottedExtension.findLastDot
+	         $4045 = BuildPathReplaceDottedExtension.storeLastDot
+	         $404a = BuildPathReplaceDottedExtension.checkExtensionPrefix
+	         $4063 = BuildPathReplaceDottedExtension.truncateOldExtension
+	         $407b = BuildPathExtensionReturn
 	SECTION: $407e-$58c7 ($184a bytes) ["ROM Bank 1 Code"]
 	         $407e = OpenFileByPath
 	         $40ae = jr_001_4097

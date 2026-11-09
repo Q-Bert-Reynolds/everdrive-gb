@@ -54,9 +54,19 @@ JoinPath:
 PathSeparatorText:: DB "/", 0
 
 BuildPathWithExtension:
-  ; Construct a path with the supplied extension. This routine continues past
-  ; $3fff into the encoded bank 1 fragment; the conditional $401d target is
-  ; explicitly labeled there rather than borrowing a bank 3 disassembly label.
+  ; Stack arguments: directory, name, extension, destination (four pointers).
+  ; Join the path, then replace its extension. Exactly 11 name bytes select the
+  ; raw FAT 8+3 form: replace the last three bytes, without inserting a dot.
+  ; Other lengths select dotted names; see notes/PATHS.md for edge cases.
+  ;
+  ; Nine-byte stack frame (offsets below apply with no temporary pushes):
+  ; +0    saw a dot anywhere in the joined path
+  ; +1..2 original extension pointer
+  ; +3..4 destination pointer
+  ; +5..6 extension read cursor / destination cut position
+  ; +7..8 saved destination pointer
+  ; Arguments are then at +$0b, +$0d, +$0f, +$11.
+  ; Execution falls through the fixed ROM boundary into bank 1 at $4000.
   add sp, -$09
   ld hl, sp+$00
   ld [hl], $00
@@ -111,8 +121,8 @@ BuildPathWithExtension:
   ld [hl+], a
   ld [hl], e
   ld a, b
-  sub $0b
-  jp nz, BuildPathKeepOriginalName
+  sub $0b ; raw FAT short names occupy eight base bytes plus three extension bytes
+  jp nz, BuildPathReplaceDottedExtension
   inc hl
   ld a, [hl+]
   ld h, [hl]
@@ -127,7 +137,7 @@ BuildPathWithExtension:
   inc hl
   ld d, [hl]
   ld a, [de]
-  sub $2e
+  sub '.'
   jr nz, .locateExtension
 
   dec hl
@@ -145,7 +155,7 @@ BuildPathWithExtension:
 .locateExtension:
   ld b, $00
   ld a, c
-  add $fd
+  add $fd ; subtract three from the joined path length (16-bit BC)
   ld c, a
   ld a, b
   adc $ff
@@ -161,23 +171,129 @@ BuildPathWithExtension:
   ld a, [hl+]
   ld e, [hl]
   ld hl, sp + $05
-  ; Falls through to BuildPathWithExtensionContinuation in bank 1
+  ; Falls through to BuildPathWriteShortExtension in the fixed upper ROM region
 
-SECTION "Bank 1 Path", ROMX[$4000], BANK[1]
-; Continuation past the ROM0 boundary.
-BuildPathWithExtensionContinuation::
-  DB $22, $73, $f8, $06, $2b, $5e, $23, $56, $1a, $b7, $28, $0c
-  DB $2b, $34, $20, $02, $23, $34, $e6, $df, $02, $03, $18, $ea
-  DB $af, $02, $c3, $7b, $40
-BuildPathKeepOriginalName::
-  DB $f8, $04, $2b, $4e, $23, $46, $0a, $b7, $28, $0b, $d6, $2e
-  DB $20, $04, $f8, $00, $36, $01, $03, $18, $f1, $f8, $05, $71
-  DB $23, $70, $f8, $00, $7e, $b7, $28, $0d, $0a, $d6, $2e, $28
-  DB $03, $0b, $18, $f8, $f8
-Bank1Data4030::
-  DB $05, $71, $23, $70, $f8, $02, $2b, $5e, $23, $56, $1a, $d6
-  DB $2e, $28, $0e, $f8, $05, $2a, $66, $6f, $36, $2e, $f8, $05
-  DB $34, $20, $02, $23, $34, $f8, $05, $2a, $66, $6f, $36, $00
-  DB $f8, $01, $2a, $66, $6f, $e5, $f8, $09, $2a, $66, $6f, $e5
-  DB $cd, $7e, $2d, $e8, $04, $e8, $09, $c9
+SECTION "Path extension continuation", ROMX[$4000], BANK[1]
+; Same routine and stack frame as BuildPathWithExtension, across $3fff/$4000.
+BuildPathWriteShortExtension::
+  ld [hl+], a
+  ld [hl], e
 
+.nextExtensionCharacter:
+  ld hl, sp+$06
+  dec hl
+  ld e, [hl]
+  inc hl
+  ld d, [hl]
+  ld a, [de]
+  or a
+  jr z, .terminateShortName
+
+  dec hl
+  inc [hl]
+  jr nz, .writeUppercaseCharacter
+
+  inc hl
+  inc [hl]
+
+.writeUppercaseCharacter:
+  and $df ; clear bit 5 unconditionally; intended for alphabetic extensions
+  ld [bc], a
+  inc bc
+  jr .nextExtensionCharacter
+
+.terminateShortName:
+  xor a
+  ld [bc], a
+  jp BuildPathExtensionReturn
+
+BuildPathReplaceDottedExtension::
+  ld hl, sp+$04
+  dec hl
+  ld c, [hl]
+  inc hl
+  ld b, [hl]
+
+.scanPathForDot:
+  ld a, [bc]
+  or a
+  jr z, .storePathEnd
+
+  sub '.'
+  jr nz, .advancePathCursor
+
+  ld hl, sp+$00
+  ld [hl], $01
+
+.advancePathCursor:
+  inc bc
+  jr .scanPathForDot
+
+.storePathEnd:
+  ld hl, sp+$05
+  ld [hl], c
+  inc hl
+  ld [hl], b
+  ld hl, sp+$00
+  ld a, [hl]
+  or a
+  jr z, .checkExtensionPrefix
+
+.findLastDot:
+  ld a, [bc]
+  sub '.'
+  jr z, .storeLastDot
+
+  dec bc
+  jr .findLastDot
+
+.storeLastDot:
+  ld hl, sp+$05
+  ld [hl], c
+  inc hl
+  ld [hl], b
+
+.checkExtensionPrefix:
+  ld hl, sp+$02
+  dec hl
+  ld e, [hl]
+  inc hl
+  ld d, [hl]
+  ld a, [de]
+  sub '.'
+  jr z, .truncateOldExtension
+
+  ld hl, sp+$05
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  ld [hl], '.'
+  ld hl, sp+$05
+  inc [hl]
+  jr nz, .truncateOldExtension
+
+  inc hl
+  inc [hl]
+
+.truncateOldExtension:
+  ld hl, sp+$05
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  ld [hl], $00
+  ld hl, sp+$01
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  push hl
+  ld hl, sp+$09 ; saved destination at +7, adjusted for the push
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  push hl
+  call AppendString
+  add sp, $04
+
+BuildPathExtensionReturn::
+  add sp, $09
+  ret

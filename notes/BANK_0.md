@@ -69,10 +69,9 @@ existing names remain where their internals have not been analyzed in this pass.
 For example, `InitializeStorageAndSettings` compares two system words before
 returning status `$52`; their precise hardware meaning remains unresolved.
 
-`BuildPathWithExtension` crosses `$3fff` into bank 1. Its continuation bytes remain
-encoded data at the start of `bank_001.asm`, now labeled at `$4000` and `$401d`.
-The old reference to `jr_003_401d` was a disassembler artifact: the instruction
-contains CPU address `$401d`, and the continuation is in the bank 1 byte stream.
-Renaming that reference preserves its target bytes.
+`BuildPathWithExtension` crosses `$3fff` into the fixed upper ROM region at
+`$4000`. Both halves are decoded in `src/paths.asm`; the boundary is an assembler
+section boundary, with ordinary CPU fall-through. See [PATHS.md](PATHS.md) for the
+stack arguments, FAT short-name handling, and dotted-extension replacement.
 
 For the in-game menu and snapshot flow, see [IN_GAME_MENU.md](IN_GAME_MENU.md).
