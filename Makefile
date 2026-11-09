@@ -1,5 +1,6 @@
 IMAGE_DEPS = gfx/font.1bpp gfx/font_original.1bpp
-SOURCES = GBCOS.asm options.inc constants.asm colors.asm macros.inc hardware.inc bank_*.asm
+# Track every included assembly unit, including the extracted bank 0 modules.
+SOURCES = $(wildcard *.asm *.inc)
 BUILD_DIR := build
 
 # Feature toggles (1 = on, 0 = off), See options.inc.
@@ -34,7 +35,7 @@ $(BUILD_DIR):
 
 # FORCE: always reassemble so changing a toggle takes effect
 $(BUILD_DIR)/GBCOS.o: $(SOURCES) $(IMAGE_DEPS) FORCE | $(BUILD_DIR)
-	rgbasm $(ASMFLAGS) -o $@ GBCOS.asm
+	rgbasm $(ASMFLAGS) -o $@ src/GBCOS.asm
 
 $(BUILD_DIR)/GBCOS.BIN: $(BUILD_DIR)/GBCOS.o | $(BUILD_DIR)
 	rgblink -p 0xff -n $(BUILD_DIR)/GBCOS.sym -m $(BUILD_DIR)/GBCOS.map -o $@ $<
@@ -43,7 +44,7 @@ $(BUILD_DIR)/GBCOS.BIN: $(BUILD_DIR)/GBCOS.o | $(BUILD_DIR)
 	md5sum $@
 
 $(BUILD_DIR)/GBCOS_original.o: $(SOURCES) $(IMAGE_DEPS) | $(BUILD_DIR)
-	rgbasm -D CUSTOM_COLORS=0 -D CUSTOM_FONT=0 -o $@ GBCOS.asm
+	rgbasm -D CUSTOM_COLORS=0 -D CUSTOM_FONT=0 -o $@ src/GBCOS.asm
 
 # No rgbfix: the header checksums are already in the source, and the stock
 # ROM's global checksum is wrong, so `rgbfix -v` would change it.

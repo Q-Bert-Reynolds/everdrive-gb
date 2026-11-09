@@ -1,18 +1,22 @@
 SECTION "ROM Bank 1 Data", ROMX[$4000], BANK[1]
 
-  DB $22, $73, $f8, $06, "+^#V"
-  DB $1a, $b7, $28, $0c, $2b, $34, $20, $02, $23, $34, $e6, $df, $02, $03, $18, $ea
-  DB $af, $02, $c3, $7b, $40, $f8, $04, "+N#F"
-  DB $0a, $b7, $28, $0b, $d6, $2e, $20, $04, $f8, $00, $36, $01, $03, $18, $f1, $f8
-  DB $05, $71, $23
-  DB $70, $f8, $00, $7e, $b7, $28, $0d, $0a, $d6, $2e, $28, $03, $0b, $18, $f8, $f8
-  
+; Continuation of paths.asm past the ROM0 boundary. Keep the encoded bytes
+; here until the rest of bank 1 is decoded; the labels name actual CPU targets.
+BuildPathWithExtension.continueAt4000::
+  DB $22, $73, $f8, $06, $2b, $5e, $23, $56, $1a, $b7, $28, $0c
+  DB $2b, $34, $20, $02, $23, $34, $e6, $df, $02, $03, $18, $ea
+  DB $af, $02, $c3, $7b, $40
+BuildPathWithExtension.keepOriginalName::
+  DB $f8, $04, $2b, $4e, $23, $46, $0a, $b7, $28, $0b, $d6, $2e
+  DB $20, $04, $f8, $00, $36, $01, $03, $18, $f1, $f8, $05, $71
+  DB $23, $70, $f8, $00, $7e, $b7, $28, $0d, $0a, $d6, $2e, $28
+  DB $03, $0b, $18, $f8, $f8
 Bank1Data4030::
-  DB $05, $71, $23, $70, $f8, $02, "+^#V"
-  DB $1a, $d6, $2e, $28, $0e, $f8, $05, "*fo6."
-  DB $f8, $05, $34, $20, $02, $23, $34, $f8, $05, $2a, $66
-  DB $6f, $36, $00, $f8, $01, $2a, $66, $6f, $e5, $f8, $09, $2a, $66, $6f, $e5, $cd
-  DB $7e, $2d, $e8, $04, $e8, $09, $c9
+  DB $05, $71, $23, $70, $f8, $02, $2b, $5e, $23, $56, $1a, $d6
+  DB $2e, $28, $0e, $f8, $05, $2a, $66, $6f, $36, $2e, $f8, $05
+  DB $34, $20, $02, $23, $34, $f8, $05, $2a, $66, $6f, $36, $00
+  DB $f8, $01, $2a, $66, $6f, $e5, $f8, $09, $2a, $66, $6f, $e5
+  DB $cd, $7e, $2d, $e8, $04, $e8, $09, $c9
 
 SECTION "ROM Bank 1 Code", ROMX[$407e], BANK[1]
 Bank1Function4067:
@@ -141,7 +145,7 @@ Jump_001_40f2:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_3a3f
+  call OpenFileForSectorIO
   add sp, $04
 
 Jump_001_4103:
@@ -275,7 +279,7 @@ jr_001_4195:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_31eb
+  call ReadDirectoryIndex
   add sp, $04
   ld hl, sp + $08
   ld [hl], e
@@ -351,7 +355,7 @@ Jump_001_41bf:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_3670
+  call ReadDirectoryEntry
   add sp, $06
   ld hl, sp + $08
   ld [hl], e
@@ -714,7 +718,7 @@ Jump_001_439d:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_3106
+  call ReadCachedFATSector
   add sp, $04
   ld a, e
   or a
@@ -894,7 +898,7 @@ Jump_001_447c:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_35df
+  call ReadNextFATCluster
   add sp, $06
   pop bc
   ld a, e
@@ -1195,7 +1199,7 @@ jr_001_45ef:
 
   push bc
   push de
-  call Call_000_3106
+  call ReadCachedFATSector
   add sp, $04
   ld a, e
   or a
@@ -1521,7 +1525,7 @@ jr_001_4780:
 
   push bc
   push de
-  call Call_000_30bd
+  call ReadCachedDirectorySector
   add sp, $04
   ld a, e
   or a
@@ -1858,7 +1862,7 @@ jr_001_4912:
   ld e, l
   ld d, h
   push de
-  call Call_000_3645
+  call AdvanceFATCluster
   add sp, $02
   ld a, e
   or a
@@ -1888,7 +1892,7 @@ Call_001_493b:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_35df
+  call ReadNextFATCluster
   add sp, $06
   ld c, e
   ld a, c
@@ -2287,7 +2291,7 @@ jr_001_4b0b:
   ld [hl], $00
   ld de, $d693
   push de
-  call Call_000_3645
+  call AdvanceFATCluster
   add sp, $02
   ld hl, sp + $02
   ld [hl], e
@@ -2322,7 +2326,7 @@ jr_001_4b4f:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_34ab
+  call ClusterToSector
   add sp, $04
   push hl
   ld hl, sp+$05
@@ -2554,7 +2558,7 @@ Call_001_4c6e:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_34ab
+  call ClusterToSector
   add sp, $04
   ld b, l
   ld c, h
@@ -2581,7 +2585,7 @@ Call_001_4c6e:
   push af
   inc sp
   push de
-  call ClearC144toC2AB
+  call FillMemory
   add sp, $05
   ld hl, sp+$12
   dec hl
@@ -2692,12 +2696,12 @@ jr_001_4d20:
 
 Call_001_4d23:
   add sp, -$0b
-  call Call_000_1179
+  call GetFATDate
   ld hl, sp + $02
   ld [hl], e
   inc hl
   ld [hl], d
-  call Call_000_1184
+  call GetFATTime
   inc sp
   inc sp
   push de
@@ -2987,7 +2991,7 @@ Call_001_4e5b:
   push af
   inc sp
   push de
-  call ClearC144toC2AB
+  call FillMemory
   add sp, $05
   pop bc
   ld hl, sp + $03
@@ -2998,7 +3002,7 @@ Call_001_4e5b:
   ld [hl], b
 
 Jump_001_4eb9:
-  ld de, TableAt30B0
+  ld de, LFNCharacterOffsets
   ld hl, sp + $03
   ld l, [hl]
   ld h, $00
@@ -3196,7 +3200,7 @@ Call_001_4f54:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_34ab
+  call ClusterToSector
   add sp, $04
   push hl
   ld hl, sp + $0c
@@ -3328,7 +3332,7 @@ jr_001_5005:
   ld [hl], a
   push bc
   push bc
-  call Call_000_3645
+  call AdvanceFATCluster
   add sp, $02
   pop bc
   ld a, e
@@ -3411,7 +3415,7 @@ jr_001_5005:
   ld [de], a
   push bc
   push bc
-  call Call_000_3645
+  call AdvanceFATCluster
   add sp, $02
   pop bc
   ld a, e
@@ -3442,7 +3446,7 @@ Jump_001_50b0:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_34ab
+  call ClusterToSector
   add sp, $04
   push hl
   ld hl, sp+$06
@@ -3502,7 +3506,7 @@ Jump_001_50ef:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_30bd
+  call ReadCachedDirectorySector
   add sp, $04
 
 Jump_001_5111:
@@ -3527,7 +3531,7 @@ Call_001_5114:
   push hl
   push bc
   push de
-  call Call_000_09ef
+  call CopyMemory
   add sp, $06
   ld hl, sp+$0c
   dec hl
@@ -4118,7 +4122,7 @@ jr_001_53f3:
   push hl
   push bc
   push de
-  call Call_000_09ef
+  call CopyMemory
   add sp, $06
   jp Jump_001_5450
 
@@ -4629,13 +4633,13 @@ jr_001_565e:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_34ab
+  call ClusterToSector
   add sp, $04
   ld c, l
   ld b, h
   push bc
   push de
-  call Call_000_30bd
+  call ReadCachedDirectorySector
   add sp, $04
   ld a, e
   or a
@@ -4789,7 +4793,7 @@ jr_001_5751:
 
   push bc
   push de
-  call Call_000_30bd
+  call ReadCachedDirectorySector
   add sp, $04
   ld a, e
   or a
@@ -5442,7 +5446,7 @@ Bank1Function5A35::
   push af
   inc sp
   push de
-  call ClearC144toC2AB
+  call FillMemory
   add sp, $05
   ld hl, sp+$11
   dec hl
@@ -5768,7 +5772,7 @@ Call_001_5c26:
   push af
   inc sp
   push de
-  call ClearC144toC2AB
+  call FillMemory
   add sp, $05
   pop bc
   ld hl, $0004
@@ -7162,7 +7166,7 @@ jr_001_62db:
   ld l, a
   push hl
   push bc
-  call Call_000_09ef
+  call CopyMemory
   add sp, $06
   pop de
   ld hl, sp + $05
@@ -7172,7 +7176,7 @@ jr_001_62db:
   push hl
   push bc
   push de
-  call Call_000_09ef
+  call CopyMemory
   add sp, $06
   jr jr_001_631a
 
@@ -7390,7 +7394,7 @@ Call_001_6402:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_3f5f
+  call BuildPathWithExtension
   add sp, $08
   pop de
   ld hl, $0100
@@ -7468,7 +7472,7 @@ Bank1Function6471::
   ld hl, $be00
   push hl
   push de
-  call Call_000_2d24
+  call CopyString
   add sp, $04
 
 jr_001_649e:
@@ -7578,7 +7582,7 @@ Call_001_64fc:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_3f5f
+  call BuildPathWithExtension
   add sp, $08
   pop de
   ld hl, $0100
@@ -7691,7 +7695,7 @@ Call_001_656f:
   push de
   push de
   push bc
-  call Call_000_3a3f
+  call OpenFileForSectorIO
   add sp, $04
   ld a, e
   pop de
@@ -7780,7 +7784,7 @@ Call_001_65d6:
   ld hl, $0000
   push hl
   push bc
-  call Call_000_3a3f
+  call OpenFileForSectorIO
   add sp, $04
   ld a, e
   pop de
@@ -7802,7 +7806,7 @@ jr_001_6626:
   inc sp
   push de
   push bc
-  call Call_000_3cf6
+  call ReadFileSectors
   add sp, $05
   ld a, e
   or a
@@ -7881,7 +7885,7 @@ Call_001_6672:
   push hl
   ld hl, Bank1Address66B2
   push hl
-  call Call_000_3f5f
+  call BuildPathWithExtension
   add sp, $08
   pop de
   ld hl, $0100
@@ -7987,7 +7991,7 @@ jr_001_66fc:
   push af
   inc sp
   push de
-  call ClearC144toC2AB
+  call FillMemory
   add sp, $05
   pop bc
   ld hl, $020b
@@ -8000,7 +8004,7 @@ jr_001_66fc:
   push hl
   push de
   push bc
-  call Call_000_09ef
+  call CopyMemory
   add sp, $06
   ld hl, $0001
   push hl
@@ -8097,7 +8101,7 @@ jr_001_6797:
   ld hl, $0001
   push hl
   push bc
-  call Call_000_3cf6
+  call ReadFileSectors
   add sp, $05
   ld a, e
   or a
@@ -8700,7 +8704,7 @@ DrawMenuDialogFrame.drawBorder:
   inc sp
   ld hl, $0020
   push hl
-  call Call_000_2272
+  call FillMenuRectangle
   add sp, $06
   pop bc
   ld b, c
@@ -8741,7 +8745,7 @@ DrawMenuDialogFrame.drawBorder:
   inc sp
   ld hl, $002d
   push hl
-  call Call_000_2272
+  call FillMenuRectangle
   add sp, $06
   pop bc
   ld d, c
@@ -8764,7 +8768,7 @@ DrawMenuDialogFrame.drawBorder:
   inc sp
   ld hl, $0020
   push hl
-  call Call_000_2272
+  call FillMenuRectangle
   add sp, $06
   pop bc
   push bc
@@ -8856,7 +8860,7 @@ jr_001_6b28:
   push hl
   push bc
   push de
-  call Call_000_09ef
+  call CopyMemory
   add sp, $06
   ld hl, $d7d2
   ld a, [hl]
@@ -8967,7 +8971,7 @@ Jump_001_6bdb:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_2d77
+  call AppendDecimal32
   add sp, $06
   ld a, $ab
   ld hl, $d7d2
@@ -8999,7 +9003,7 @@ Call_001_6c15:
   ld a, [hl]
   push af
   inc sp
-  call Call_000_2e08
+  call AppendHexByte
   add sp, $03
   ld hl, $d7d2
   inc [hl]

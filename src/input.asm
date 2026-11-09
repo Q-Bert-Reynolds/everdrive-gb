@@ -19,7 +19,7 @@ GetButtonDown::;returns buttons pressed in e
 
 
 GetInput::;returns buttons in e
-  ld hl, $c2b4
+  ld hl, wInputRandomState
   inc [hl]
   jr nz, .checkDPad
 
@@ -27,7 +27,7 @@ GetInput::;returns buttons in e
   inc [hl]
 
 .checkDPad:
-  ld hl, $c2b6
+  ld hl, wInputRepeatCounter
   ld a, [hl]
   sub $16;is DPad pressed?
   jr nc, .updateGamepad
@@ -71,17 +71,17 @@ GetInput::;returns buttons in e
   and $f0;is it just the dPad
   jr z, .noButtonsPressed
 
-  ld hl, $c2b6
+  ld hl, wInputRepeatCounter
   inc [hl]
-  jr jr_000_1fe9
+  jr GetInput.checkRepeatLimit
 
 .noButtonsPressed:
-  ld hl, $c2b6
+  ld hl, wInputRepeatCounter
   ld [hl], $00
 
-jr_000_1fe9:
+GetInput.checkRepeatLimit:
   ld a, $18
-  ld hl, $c2b6
+  ld hl, wInputRepeatCounter
   sub [hl]
   jr nc, .returnInput
 
@@ -94,4 +94,39 @@ jr_000_1fe9:
 .returnInput:
   ld hl, $c2b1
   ld e, [hl]
+  ret
+
+; Writable A/B swap flag
+
+SECTION "Writable A/B swap flag", ROM0[$09c0]
+
+SwapABFlag:: DB 0;nonzero swaps the A and B buttons, see GetInput
+
+
+; Raw joypad sampling
+
+SECTION "Raw joypad sampling", ROM0[$0a16]
+
+UpdateInput::;puts button state in e
+  ld a, P1F_GET_DPAD
+  ldh [rP1], a
+REPT 4;multiple reads to avoid button bounce
+  ldh a, [rP1];load dPad
+ENDR
+  and $0f
+  ld e, a
+  ld a, P1F_GET_BTN
+  ldh [rP1], a
+REPT 4
+  sla e
+ENDR
+REPT 4
+  ldh a, [rP1];load buttons
+ENDR
+  and $0f
+  or e
+  cpl
+  ld e, a
+  ld a, P1F_GET_NONE
+  ldh [rP1], a
   ret

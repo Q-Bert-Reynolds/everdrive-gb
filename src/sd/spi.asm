@@ -1376,7 +1376,7 @@ jr_000_28b0:
   ret
 
 
-Call_000_28b6:
+SD_ReadBlocksToRAM:
   add sp, -$04
   ld b, $00
   ld hl, sp+$06
@@ -1522,7 +1522,7 @@ jr_000_296a:
   ret
 
 
-Call_000_296d:
+SD_ReadBlocksToCartridge:
   add sp, -$04
   ld b, $00
   ld hl, sp+$06

@@ -74,6 +74,73 @@ DEF wMenuTextPointer EQU $c2ad ; word: next destination in the shadow screen
 DEF wMenuCursorOffset EQU $c2af ; word: x + 20*y in the shadow screen
 DEF wMenuTextMode EQU $c2b2 ; ORed into character tiles ($80 for unselected text)
 DEF wMenuRowOverride EQU $d7d6 ; $ff = center dialog vertically
+DEF wDisplaySystemType EQU $c2b3 ; 1 = DMG, 2 = SGB, 3 = CGB
+DEF wInputRandomState EQU $c2b4 ; word: also mixed by NextRandomWord
+DEF wInputRepeatCounter EQU $c2b6
+DEF wRandomSequence EQU $c2b7 ; word
+
+; Registry in WRAM. The last word is an additive checksum of the first $0108 bytes.
+DEF wOSSystemType EQU $c001
+DEF wSystemDirectoryCluster EQU $c027 ; dword
+DEF wRegistry EQU $c02b
+DEF REGISTRY_SIZE EQU $010a
+DEF REGISTRY_CHECKSUM_SIZE EQU $0108
+DEF REGISTRY_SIGNATURE EQU $1234
+DEF wRegistrySwapAB EQU $c02e
+DEF wGameMetadata EQU $c032
+DEF wGameMapper EQU wGameMetadata
+DEF wGameROMMask EQU wGameMetadata + 1
+DEF wGameRAMMask EQU wGameMetadata + 2
+DEF wGameHasBattery EQU wGameMetadata + 3
+DEF wGameSGBFlag EQU wGameMetadata + 4
+DEF wGameCGBMode EQU wGameMetadata + 5
+DEF wGameHasRTC EQU wGameMetadata + 6
+DEF wGameROMSectors EQU wGameMetadata + 7 ; word
+DEF wGameRAMSectors EQU wGameMetadata + 9 ; word
+DEF wGameTitle EQU wGameMetadata + 11 ; 16 bytes
+DEF wPreparedGameEntry EQU $c04d ; expanded directory entry, $e5 bytes
+DEF wPreparedGameValid EQU $c132
+DEF wRegistryChecksum EQU $c133
+
+; FAT32 volume, directory caches, and the single active file cursor.
+DEF wFATEntryCapacity EQU $c2bf ; dword: FAT sectors * 128 entries/sector
+DEF wFATStartSector EQU $c2c3 ; dword: absolute LBA
+DEF wPartitionStartSector EQU $c2c7 ; dword
+DEF wDirectoryCacheSector EQU $c2cb ; dword: absolute LBA, $ffffffff = invalid
+DEF wFATCacheSector EQU $c2cf ; dword: sector offset within the FAT
+DEF wFATSectorCount EQU $c2d3 ; dword
+DEF wRootDirectorySector EQU $c2d7 ; dword; mount assumes root cluster 2
+DEF wDataStartSector EQU $c2db ; dword
+DEF wDirectoryCluster EQU $c2df ; dword: argument passed to ReadDirectoryIndex
+DEF wReservedSectorCount EQU $c2e3 ; word
+DEF wSectorsPerCluster EQU $c2e5
+DEF wVolumeFATType EQU $c2e6 ; 0 = unknown, 1 = FAT16, 2 = FAT32
+DEF wClusterSectorShift EQU $c2e7 ; log2(sectors per cluster)
+DEF wAllocationCursor EQU $c2e8 ; dword
+DEF wParentDirectoryCluster EQU $c2ec ; dword
+DEF wDirectoryEntryCount EQU $c2f0 ; word, capped at 1000
+DEF wDirectoryIsRoot EQU $c2f2
+DEF wDirectorySectorBuffer EQU $c2f3 ; 512 bytes
+DEF wFATSectorBuffer EQU $c4f3 ; 512 bytes
+DEF wDirectoryEntryIDs EQU $c6f3 ; 1000 dwords: sector << 4 | entry index
+DEF wFileCluster EQU $d693 ; dword
+DEF wFileSector EQU $d697 ; dword: absolute LBA
+DEF wFileByteSize EQU $d69b ; dword
+DEF wFileSectorsRemaining EQU $d69f ; word, rounded up from byte size
+DEF wFileWriteMode EQU $d6a1 ; zero = read-only; nonzero blocks ReadFileSectors
+DEF wFileSectorInCluster EQU $d6a2
+DEF wClusterToSectorTemp EQU $d6a3 ; dword
+DEF wSectorToClusterTemp EQU $d6a7 ; dword
+
+; Expanded directory entry fields used by the loader and filesystem.
+DEF DIRECTORY_ENTRY_SIZE EQU $e5
+DEF DIRECTORY_ENTRY_ID EQU $d4 ; first LFN entry, or short entry if no LFN
+DEF DIRECTORY_ENTRY_SHORT_ID EQU $d8
+DEF DIRECTORY_ENTRY_CLUSTER EQU $dc
+DEF DIRECTORY_ENTRY_FILE_SIZE EQU $e0
+DEF DIRECTORY_ENTRY_IS_DIRECTORY EQU $e4
+DEF ROM_HEADER_TITLE EQU $0134
+DEF ROM_HEADER_CGB_FLAG EQU $0143
 DEF wGamepadState EQU $c2b1;$c2b0 in v1.04 (v1.06 inserts a byte before $c2ad)
   ;$c2b4 selected line?
   ;$c2b6 last button state?
