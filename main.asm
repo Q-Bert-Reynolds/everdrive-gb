@@ -57,7 +57,7 @@ SECTION "Header", ROM0[$0100]
 SECTION "Bank 0 Code, A", ROM0[$0280]
 EntryPoint:
   di
-  ld sp, $dfff
+  ld sp, OS_STACK_TOP
   ld a, EDGB_UNLOCK_KEY
   ld [sEDGBUnlock], a; Unlock EverDrive FPGA hardware registers ($A5 is the unlock key)
   
@@ -67,7 +67,7 @@ EntryPoint:
   jr nz, CartSwitchPressed
 
 InitializeCart::
-  ld sp, $dfff;end of ram
+  ld sp, OS_STACK_TOP;end of ram
   ld a, $00
   ldh [rSVBK], a
   ldh [rVBK], a
@@ -90,6 +90,8 @@ SetInterrupts::;probably not the only thing this does
   ret
 
 CartSwitchPressed:
+  ; "Back to menu" reaches here with CartSwitch=1. The $10 config write
+  ; requests the cart's OS reboot; the CPU spins while the hardware acts.
   ld a, $00
   ld [CartSwitch], a
   ld a, $10

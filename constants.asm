@@ -43,7 +43,37 @@ DEF sSavedMapperRegs     EQU $bd14 ; cart mapper registers saved in SRAM during 
 DEF sSaveStateWindow     EQU $3e40 ; save sector window used for resumed game state
 DEF sSavedScreenState    EQU $3e62 ; first block copied back during restore
 
+; Snapshot sector numbers, selected through sBufferSectorLow/High, not CPU addresses.
+; $BD06 bit 1 selects game save RAM; clear selects the snapshot/PSRAM buffer.
+DEF SNAPSHOT_FIRST_SECTOR EQU $3e40
+DEF SAVE_SLOT_FIRST_SECTOR EQU $0040
+DEF SNAPSHOT_SECTOR_COUNT EQU $00a4 ; 82 KiB, copied through a 512-byte stack buffer
+DEF SNAPSHOT_HEADER_SECTOR EQU $40 ; low byte; high byte stays $3e during capture
+DEF SNAPSHOT_DISPLAY_SECTOR EQU $41
+DEF SNAPSHOT_CART_RAM_SECTOR EQU $62
+DEF SNAPSHOT_CGB_SECTOR EQU $a2
+DEF SNAPSHOT_STACK_TOP EQU $066e ; temporary stack in writable OS memory
+DEF OS_STACK_TOP EQU $dfff
+
+; Fields visible at $BE00 when the snapshot header sector is selected.
+DEF sSnapshotSavedSP EQU sBufferWindow + 4
+DEF sSnapshotMapperRegs EQU sBufferWindow + 6 ; RAMG, mode, RAM bank, ROM bank
+DEF sSnapshotHRAM EQU $bf80 ; HRAM shadow in the OAM/IO snapshot sector
+
+; Stack-local menu descriptors end in a word <= $000f instead of a string pointer.
+DEF MENU_FLAG_MESSAGE EQU $0001 ; dismiss on any button; return initial selection
+DEF MENU_FLAG_COMPACT EQU $0004 ; single-spaced rows
+DEF INGAME_ACTION_SAVE EQU 0
+DEF INGAME_ACTION_LOAD EQU 1
+DEF INGAME_ACTION_EXIT EQU 2
+DEF MENU_ACTION_CANCEL EQU $ff
+
 ;WRAM
+DEF wMenuScreenBuffer EQU $c145 ; 20 x 18 tile shadow screen
+DEF wMenuTextPointer EQU $c2ad ; word: next destination in the shadow screen
+DEF wMenuCursorOffset EQU $c2af ; word: x + 20*y in the shadow screen
+DEF wMenuTextMode EQU $c2b2 ; ORed into character tiles ($80 for unselected text)
+DEF wMenuRowOverride EQU $d7d6 ; $ff = center dialog vertically
 DEF wGamepadState EQU $c2b1;$c2b0 in v1.04 (v1.06 inserts a byte before $c2ad)
   ;$c2b4 selected line?
   ;$c2b6 last button state?

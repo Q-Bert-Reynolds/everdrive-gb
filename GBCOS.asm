@@ -13,6 +13,7 @@ INCLUDE "main.asm"
 INCLUDE "sd.asm"
 INCLUDE "i2c.asm"
 INCLUDE "launcher.asm"
+INCLUDE "in_game_menu.asm"
 INCLUDE "input.asm"
 INCLUDE "colors.asm"
 

@@ -438,7 +438,7 @@ jr_001_4254:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_000_2b5a
+  call CompareBytesEqual
   add sp, $05
   ld a, e
   or a
@@ -7257,7 +7257,7 @@ jr_001_6366:
   push de
   ld hl, $be00
   push hl
-  call Call_000_2b5a
+  call CompareBytesEqual
   add sp, $05
   ld a, e
   or a
@@ -8151,7 +8151,13 @@ jr_001_67e3:
   ret
 
 
-Bank1Function67E6:
+ShowMenuDialog:
+  ; $67f9. Stack arguments: descriptor pointer (word), initial selection (byte).
+  ; Descriptor: title pointer, entry pointers, then a flags word <= $000f.
+  ; Measures the strings, draws a frame, highlights the selected entry and
+  ; polls GetButtonDown. E = zero-based selection, or $ff for B/cancel.
+  ; Flags: bit 0 = message, bit 1 = left aligned, bit 2 = compact rows,
+  ; bit 3 = return on other input (selection + $80).
   add sp, -$13
   ld hl, sp+$12
   ld [hl], $00
@@ -8160,17 +8166,17 @@ Bank1Function67E6:
   ld hl, sp+$16
   ld a, [hl-]
   or [hl]
-  jr nz, jr_001_67fb
+  jr nz, ShowMenuDialog.scanDescriptor
 
   ld [hl], $ab
   inc hl
   ld [hl], $d7
 
-jr_001_67fb:
+ShowMenuDialog.scanDescriptor:
   ld hl, sp + $06
   ld [hl], $00
 
-Jump_001_67ff:
+ShowMenuDialog.nextString:
   ld hl, sp + $06
   ld c, [hl]
   ld b, $00
@@ -8200,7 +8206,7 @@ Jump_001_67ff:
   inc hl
   ld a, $00
   sbc [hl]
-  jr nc, jr_001_683a
+  jr nc, ShowMenuDialog.readFlags
 
   push bc
   call StringLength
@@ -8209,17 +8215,19 @@ Jump_001_67ff:
   ld hl, sp+$12
   ld a, [hl]
   sub c
-  jr nc, jr_001_6834
+  jr nc, ShowMenuDialog.advanceString
 
   ld [hl], c
 
-jr_001_6834:
+ShowMenuDialog.advanceString:
   ld hl, sp + $06
   inc [hl]
-  jp Jump_001_67ff
+  jp ShowMenuDialog.nextString
 
 
-jr_001_683a:
+ShowMenuDialog.readFlags:
+  ; The first word <= $000f terminates the pointer list; it is not a NULL
+  ; string. Subtract one from the string count to exclude the title.
   ld hl, sp + $06
   ld c, [hl]
   ld a, [hl]
@@ -8233,11 +8241,11 @@ jr_001_683a:
   ld [hl], a
   ld a, $14
   sub [hl]
-  jr nc, jr_001_6851
+  jr nc, ShowMenuDialog.readLayout
 
   ld [hl], $14
 
-jr_001_6851:
+ShowMenuDialog.readLayout:
   ld b, $00
   sla c
   rl b
@@ -8256,27 +8264,27 @@ jr_001_6851:
   ld a, [de]
   ld c, a
   bit 2, b
-  jr z, jr_001_686e
+  jr z, ShowMenuDialog.computeHeight
 
   ld hl, sp + $01
   ld [hl], $01
 
-jr_001_686e:
+ShowMenuDialog.computeHeight:
   ld hl, sp + $01
   ld a, [hl]
   dec a
-  jr nz, jr_001_687a
+  jr nz, ShowMenuDialog.doubleSpacedHeight
   ld hl, sp + $05
   ld a, [hl]
   inc a
-  jr jr_001_687e
+  jr ShowMenuDialog.drawFrame
 
-jr_001_687a:
+ShowMenuDialog.doubleSpacedHeight:
   ld hl, sp + $05
   ld a, [hl]
   add a
 
-jr_001_687e:
+ShowMenuDialog.drawFrame:
   ld hl, sp + $02
   ld [hl], a
   ld hl, sp+$15
@@ -8310,7 +8318,7 @@ jr_001_687e:
   ld h, [hl]
   ld l, a
   push hl
-  call Call_001_69f6
+  call DrawMenuDialogFrame
   add sp, $04
   pop bc
   push bc
@@ -8321,7 +8329,7 @@ jr_001_687e:
   pop bc
   ld hl, sp + $00
   ld [hl], a
-  ld hl, $d7d6
+  ld hl, wMenuRowOverride
   ld [hl], $ff
   ld a, e
   inc a
@@ -8335,15 +8343,15 @@ jr_001_687e:
   ld hl, sp + $01
   ld a, [hl]
   sub $02
-  jr nz, jr_001_68d3
+  jr nz, ShowMenuDialog.singleSpaced
 
   ld a, $01
-  jr jr_001_68d4
+  jr ShowMenuDialog.storeSpacing
 
-jr_001_68d3:
+ShowMenuDialog.singleSpaced:
   xor a
 
-jr_001_68d4:
+ShowMenuDialog.storeSpacing:
   ld hl, sp+$12
   ld [hl], a
   ld hl, sp + $05
@@ -8362,11 +8370,11 @@ jr_001_68d4:
   ld [hl+], a
   ld [hl], $00
 
-Jump_001_68ef:
+ShowMenuDialog.redraw:
   ld hl, sp+$0b
   ld a, [hl-]
   or [hl]
-  jr nz, jr_001_6904
+  jr nz, ShowMenuDialog.positionLeftAligned
 
   ld hl, sp + $00
   ld a, [hl]
@@ -8377,9 +8385,9 @@ Jump_001_68ef:
   inc sp
   call SetMenuCursorAddress
   add sp, $02
-  jr jr_001_6913
+  jr ShowMenuDialog.beginEntries
 
-jr_001_6904:
+ShowMenuDialog.positionLeftAligned:
   ld hl, sp + $00
   ld a, [hl]
   push af
@@ -8391,41 +8399,41 @@ jr_001_6904:
   call SetMenuCursorAddress
   add sp, $02
 
-jr_001_6913:
+ShowMenuDialog.beginEntries:
   ld hl, sp + $06
   ld [hl], $00
 
-Jump_001_6917:
+ShowMenuDialog.nextEntry:
   ld hl, sp + $06
   ld a, [hl-]
   sub [hl]
-  jp nc, Jump_001_697e
+  jp nc, ShowMenuDialog.present
 
   ld hl, sp+$17
   ld a, [hl]
   ld hl, sp + $06
   sub [hl]
-  jr nz, jr_001_6935
+  jr nz, ShowMenuDialog.unselectedEntry
   ld hl, sp + $08
   ld a, [hl-]
   or [hl]
-  jr nz, jr_001_6935
+  jr nz, ShowMenuDialog.unselectedEntry
 
   xor a
   push af
   inc sp
   call SetMenuTextMode
   inc sp
-  jr jr_001_693d
+  jr ShowMenuDialog.renderEntry
 
-jr_001_6935:
+ShowMenuDialog.unselectedEntry:
   ld a, $80
   push af
   inc sp
   call SetMenuTextMode
   inc sp
 
-jr_001_693d:
+ShowMenuDialog.renderEntry:
   ld hl, sp + $06
   ld c, [hl]
   ld b, $00
@@ -8449,23 +8457,23 @@ jr_001_693d:
   ld hl, sp+$0b
   ld a, [hl-]
   or [hl]
-  jr nz, jr_001_6964
+  jr nz, ShowMenuDialog.renderLeftAligned
 
   push bc
   call RenderMenuLabel
   add sp, $02
-  jr jr_001_696a
+  jr ShowMenuDialog.advanceRow
 
-jr_001_6964:
+ShowMenuDialog.renderLeftAligned:
   push bc
   call LoadOSInitText
   add sp, $02
 
-jr_001_696a:
+ShowMenuDialog.advanceRow:
   ld hl, sp+$12
   ld a, [hl]
   or a
-  jr z, jr_001_6978
+  jr z, ShowMenuDialog.advanceEntry
 
   ld a, $01
   push af
@@ -8473,13 +8481,13 @@ jr_001_696a:
   call SetMenuCursor
   inc sp
 
-jr_001_6978:
+ShowMenuDialog.advanceEntry:
   ld hl, sp + $06
   inc [hl]
-  jp Jump_001_6917
+  jp ShowMenuDialog.nextEntry
 
 
-Jump_001_697e:
+ShowMenuDialog.present:
   call DrawToScreen0
   call GetButtonDown
   ld hl, sp + $03
@@ -8487,17 +8495,18 @@ Jump_001_697e:
   ld hl, sp + $08
   ld a, [hl-]
   or [hl]
-  jr z, jr_001_6993
+  jr z, ShowMenuDialog.handleUp
 
+  ; Message flag: dismiss on any button, retaining the initial selection.
   ld hl, sp+$17
   ld e, [hl]
-  jp Jump_001_69f3
+  jp ShowMenuDialog.done
 
 
-jr_001_6993:
+ShowMenuDialog.handleUp:
   ld hl, sp + $03
-  bit 6, [hl]
-  jr z, jr_001_69b1
+  bit PADB_UP, [hl]
+  jr z, ShowMenuDialog.handleDown
 
   ld hl, sp+$17
   ld a, [hl]
@@ -8506,25 +8515,25 @@ jr_001_6993:
   rla
   ld d, a
   or a
-  jr z, jr_001_69aa
+  jr z, ShowMenuDialog.moveUp
 
   ld hl, sp+$09
   ld b, [hl]
-  jr jr_001_69ae
+  jr ShowMenuDialog.storeUpSelection
 
-jr_001_69aa:
+ShowMenuDialog.moveUp:
   ld hl, sp+$17
   ld b, [hl]
   dec b
 
-jr_001_69ae:
+ShowMenuDialog.storeUpSelection:
   ld hl, sp+$17
   ld [hl], b
 
-jr_001_69b1:
+ShowMenuDialog.handleDown:
   ld hl, sp + $03
-  bit 7, [hl]
-  jr z, jr_001_69d1
+  bit PADB_DOWN, [hl]
+  jr z, ShowMenuDialog.handleConfirm
   ld hl, sp + $05
   ld c, [hl]
   ld b, $00
@@ -8534,56 +8543,58 @@ jr_001_69b1:
   ld e, $00
   ld a, c
   sub d
-  jr nz, jr_001_69ca
+  jr nz, ShowMenuDialog.moveDown
 
   ld a, b
   sub e
-  jr z, jr_001_69ce
+  jr z, ShowMenuDialog.storeDownSelection
 
-jr_001_69ca:
+ShowMenuDialog.moveDown:
   ld hl, sp+$17
   ld a, [hl]
   inc a
 
-jr_001_69ce:
+ShowMenuDialog.storeDownSelection:
   ld hl, sp+$17
   ld [hl], a
 
-jr_001_69d1:
+ShowMenuDialog.handleConfirm:
   ld hl, sp + $03
-  bit 0, [hl]
-  jr z, jr_001_69dc
+  bit PADB_A, [hl]
+  jr z, ShowMenuDialog.handleCancel
 
   ld hl, sp+$17
   ld e, [hl]
-  jr jr_001_69f3
+  jr ShowMenuDialog.returnResult
 
-jr_001_69dc:
+ShowMenuDialog.handleCancel:
   ld hl, sp + $03
-  bit 1, [hl]
-  jr z, jr_001_69e6
+  bit PADB_B, [hl]
+  jr z, ShowMenuDialog.checkReturnOnOtherInput
 
-  ld e, $ff
-  jr jr_001_69f3
+  ld e, MENU_ACTION_CANCEL
+  jr ShowMenuDialog.returnResult
 
-jr_001_69e6:
+ShowMenuDialog.checkReturnOnOtherInput:
   ld hl, sp + $11
   ld a, [hl-]
   or [hl]
-  jp z, Jump_001_68ef
+  jp z, ShowMenuDialog.redraw
 
   ld hl, sp+$17
   ld a, [hl]
   add $80
   ld e, a
 
-Jump_001_69f3:
-jr_001_69f3:
+ShowMenuDialog.done:
+ShowMenuDialog.returnResult:
   add sp, $13
   ret
 
 
-Call_001_69f6:
+DrawMenuDialogFrame:
+  ; Centers the dialog horizontally. wMenuRowOverride=$ff centers vertically;
+  ; otherwise the byte supplies the top row. Draws the title and border.
   add sp, -$03
   ld hl, sp+$07
   ld c, [hl]
@@ -8603,7 +8614,7 @@ Call_001_69f6:
   ld a, b
   ld d, a
   bit 7, b
-  jr z, jr_001_6a18
+  jr z, DrawMenuDialogFrame.halveHorizontalMargin
 
   inc bc
   dec hl
@@ -8611,7 +8622,7 @@ Call_001_69f6:
   inc hl
   ld [hl], b
 
-jr_001_6a18:
+DrawMenuDialogFrame.halveHorizontalMargin:
   ld hl, sp+$01
   ld d, [hl]
   inc hl
@@ -8641,7 +8652,7 @@ jr_001_6a18:
   ld a, b
   ld d, a
   bit 7, b
-  jr z, jr_001_6a46
+  jr z, DrawMenuDialogFrame.halveVerticalMargin
 
   inc bc
   dec hl
@@ -8649,22 +8660,22 @@ jr_001_6a18:
   inc hl
   ld [hl], b
 
-jr_001_6a46:
+DrawMenuDialogFrame.halveVerticalMargin:
   ld hl, sp+$01
   ld c, [hl]
   inc hl
   ld d, [hl]
   sra d
   rr c
-  ld hl, $d7d6
+  ld hl, wMenuRowOverride
   ld a, [hl]
   inc a
-  jr z, jr_001_6a5a
+  jr z, DrawMenuDialogFrame.drawBorder
 
-  ld hl, $d7d6
+  ld hl, wMenuRowOverride
   ld c, [hl]
 
-jr_001_6a5a:
+DrawMenuDialogFrame.drawBorder:
   push bc
   ld a, $80
   push af
@@ -8772,7 +8783,7 @@ jr_001_6a5a:
   push hl
   ld hl, sp+$04
   ld a, [hl]
-  ld hl, $d7d6
+  ld hl, wMenuRowOverride
   ld [hl], a
   pop hl
   ret
@@ -8789,7 +8800,7 @@ Bank1Function6AF2::
   ld [hl], $00
   inc hl
   ld [hl], $00
-  ld hl, $d7d6
+  ld hl, wMenuRowOverride
   ld [hl], $ff
   ret
 

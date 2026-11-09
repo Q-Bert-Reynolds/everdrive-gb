@@ -65,6 +65,9 @@ SaveText:: DB "SAVE"
 
 SECTION "Bank 0 Code, B", ROM0[$0670]
 VBLInterrupt:
+  ; In-game entry at $0670 via the OS's $0040 vector. The cart must expose
+  ; the OS mapping first; this handler does not poll the physical cart button.
+  ; Save the game's registers before borrowing WRAM/VRAM for the menu.
   push af
   push bc
   push de
@@ -75,27 +78,28 @@ VBLInterrupt:
   ld a, $04
   ld [sStreamingConfig], a
   ld [sSavedSP], sp
-  ld sp, $066e
+  ld sp, SNAPSHOT_STACK_TOP
   call StoreScreenSettings
   and $00
   ldh [rLCDC], a
   ldh [rVBK], a
   and $01
   ldh [rSVBK], a
-  ld a, $3e
+  ld a, HIGH(SNAPSHOT_FIRST_SECTOR)
   ld [sBufferSectorHigh], a
   call SaveGameStateHeader
   call SaveDisplayState
   call SaveBankedState
   call SaveCGBState
   call RestoreDisplayState
-  ld sp, $dfff
+  ld sp, OS_STACK_TOP
   call SetInterrupts
-  jp ResumeFromSnapshot
+  jp ShowInGameMenu
 
 
 SaveGameStateHeader:
-  ld a, $40
+  ; Snapshot sector $3e40: "SAVE", saved SP (word), four mapper bytes.
+  ld a, SNAPSHOT_HEADER_SECTOR
   ld [sBufferSectorLow], a
   call ClearBufferWindow
   ld hl, sBufferWindow
@@ -123,7 +127,9 @@ SaveGameStateHeader:
 
 
 SaveDisplayState:
-  ld a, $41
+  ; $3e41-$3e50: VRAM bank 0; $3e51-$3e60: $c000-$dfff;
+  ; $3e61: $fe00-$ffff (OAM, IO and HRAM).
+  ld a, SNAPSHOT_DISPLAY_SECTOR
   ld [sBufferSectorLow], a
   ld de, _VRAM
   ld c, $10
@@ -151,12 +157,14 @@ SaveDisplayState:
 
 
 SaveBankedState:
+  ; Borrow WRAM as an 8 KiB transfer buffer. Bit 1 of $BD06 selects
+  ; game save RAM; clear it to write the temporary snapshot instead.
   and $01
   ldh [rSVBK], a
   call GetSaveStatePageCount
   ld de, $0000
 
-jr_000_071d:
+SaveBankedState.copyCartRAM:
   push bc
   call CopyDEtoBD02
   call EnableStreaming
@@ -179,28 +187,30 @@ jr_000_071d:
   ld e, a
   pop bc
   dec c
-  jr nz, jr_000_071d
+  jr nz, SaveBankedState.copyCartRAM
 
   ret
 
 
 SaveCGBState:
-  ld a, $a2
+  ; $3ea2: palettes; $3ea3-$3eb2: VRAM bank 1;
+  ; $3eb3-$3ee2: WRAM banks 2-7. DetectCGBMode skips this on DMG.
+  ld a, SNAPSHOT_CGB_SECTOR
   ld [sBufferSectorLow], a
   call ClearBufferWindow
   call DetectCGBMode
   ld hl, sBufferWindow
 
-jr_000_075f:
+SaveCGBState.copyBackgroundPalettes:
   ld a, l
   ldh [rBCPS], a
   ldh a, [rBCPD]
   ld [hl+], a
   ld a, l
   and $3f
-  jr nz, jr_000_075f
+  jr nz, SaveCGBState.copyBackgroundPalettes
 
-jr_000_076a:
+SaveCGBState.copyObjectPalettes:
   ld a, l
   and $3f
   ldh [rOCPS], a
@@ -208,7 +218,7 @@ jr_000_076a:
   ld [hl+], a
   ld a, l
   and $3f
-  jr nz, jr_000_076a
+  jr nz, SaveCGBState.copyObjectPalettes
 
   call IncrementBD02
   ld a, $01
@@ -219,7 +229,7 @@ jr_000_076a:
   ld b, $02
   ld a, b
 
-jr_000_0789:
+SaveCGBState.copyWRAMBanks:
   ldh [rSVBK], a
   ld de, _RAMBANK
   ld c, $08
@@ -227,7 +237,7 @@ jr_000_0789:
   inc b
   ld a, b
   cp $08
-  jr nz, jr_000_0789
+  jr nz, SaveCGBState.copyWRAMBanks
 
   ret
 
@@ -269,16 +279,18 @@ DetectCGBMode:
   ldh [rVBK], a
   ret
 .isDMG:
-  pop hl;where is this pushed?
+  pop hl ; discard DetectCGBMode's return address, returning from its caller
   ret
 
 
 RestoreSnapshotState:
+  ; Does not return to the menu: restores the game's SP and mapper, then
+  ; ResumeFromSavedCartState asks the cart to switch back to the game.
   di
-  ld sp, $066e
+  ld sp, SNAPSHOT_STACK_TOP
   ld a, $04
   ld [sStreamingConfig], a
-  ld a, $3e
+  ld a, HIGH(SNAPSHOT_FIRST_SECTOR)
   ld [sBufferSectorHigh], a
   call RestoreDisplayState
   call RestoreBankedState
@@ -292,6 +304,8 @@ RestoreSnapshotState:
 
 
 ResumeFromSavedCartState:
+  ; Pulse $BD09 bit 1, restore the interrupted registers, and hand the
+  ; pending frame to the game's VBlank handler after the mapping switches.
   ld a, $02
   ld [sCartSwitch], a
   ld a, $00
@@ -310,16 +324,16 @@ ResumeFromSavedCartState:
   jp VBlankVector
 
 RestoreMapperState:
-  ld a, $40
+  ld a, SNAPSHOT_HEADER_SECTOR
   ld [sBufferSectorLow], a
   ld a, $00
   ld [sStreamingConfig], a
-  ld a, [$be05]
+  ld a, [sSnapshotSavedSP+1]
   ld h, a
-  ld a, [$be04]
+  ld a, [sSnapshotSavedSP]
   ld l, a
   ld sp, hl
-  ld hl, $be06
+  ld hl, sSnapshotMapperRegs
   ld a, [hl+]
   ld [rRAMG], a
   ld a, [hl+]
@@ -334,7 +348,7 @@ RestoreMapperState:
   jr ResumeFromSavedCartState
 
 RestoreDisplayBuffers:
-  ld a, $41
+  ld a, SNAPSHOT_DISPLAY_SECTOR
   ld [sBufferSectorLow], a
   ld hl, _VRAM
   ld c, $10
@@ -345,7 +359,7 @@ RestoreDisplayBuffers:
   ld hl, _OAMRAM
   ld de, sBufferWindow
   ld hl, _HRAM
-  ld de, $bf80
+  ld de, sSnapshotHRAM
   call Copy256FromDEtoHL
   call CopySRAMtoIO
   ret
@@ -357,7 +371,7 @@ RestoreBankedState:
   call GetSaveStatePageCount
   ld de, sSavedScreenState
 
-jr_000_0876:
+RestoreBankedState.copyCartRAM:
   push bc
   call CopyDEtoBD02
   call DisableStreaming
@@ -379,9 +393,9 @@ jr_000_0876:
   ld e, a
   pop bc
   dec c
-  jr nz, jr_000_0876
+  jr nz, RestoreBankedState.copyCartRAM
 
-  ld a, $3e
+  ld a, HIGH(SNAPSHOT_FIRST_SECTOR)
   ld [sBufferSectorHigh], a
   call DisableStreaming
   ret
@@ -411,20 +425,20 @@ RestoreInterruptState:
 RestoreCGBState:
   call DetectCGBMode
   call RestoreInterruptState
-  ld a, $a2
+  ld a, SNAPSHOT_CGB_SECTOR
   ld [sBufferSectorLow], a
   ld hl, sBufferWindow
 
-jr_000_08d9:
+RestoreCGBState.copyBackgroundPalettes:
   ld a, l
   ldh [rBCPS], a
   ld a, [hl+]
   ldh [rBCPD], a
   ld a, l
   and $3f
-  jr nz, jr_000_08d9
+  jr nz, RestoreCGBState.copyBackgroundPalettes
 
-jr_000_08e4:
+RestoreCGBState.copyObjectPalettes:
   ld a, l
   and $3f
   ldh [rOCPS], a
@@ -432,7 +446,7 @@ jr_000_08e4:
   ldh [rOCPD], a
   ld a, l
   and $3f
-  jr nz, jr_000_08e4
+  jr nz, RestoreCGBState.copyObjectPalettes
 
   call IncrementBD02
   ld a, $01
@@ -443,7 +457,7 @@ jr_000_08e4:
   ld b, $02
   ld a, b
 
-jr_000_0903:
+RestoreCGBState.copyWRAMBanks:
   ldh [rSVBK], a
   ld hl, _RAMBANK
   ld c, $08
@@ -451,7 +465,7 @@ jr_000_0903:
   inc b
   ld a, b
   cp $08
-  jr nz, jr_000_0903
+  jr nz, RestoreCGBState.copyWRAMBanks
 
   ret
 
@@ -602,7 +616,7 @@ WaitVBL:
 
 DrawToScreen0:;copies data from _SRAM+$144 to _SCRN0
   ld bc, _SCRN0
-  ld hl, $c145
+  ld hl, wMenuScreenBuffer
   ld d, 20;screen width in tiles
 
 .copyLoop:
@@ -735,412 +749,7 @@ InitializeOS::;$0a43
 OSInitText::
     db "OS init...", 0
 
-ResumeFromSnapshot:
-  ld hl, $fde3
-  add hl, sp
-  ld sp, hl
-  ld hl, sp+$00
-  ld a, l
-  ld d, h
-  ld hl, $021b
-  add hl, sp
-  ld [hl+], a
-  ld [hl], d
-  dec hl
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-  ld [hl], $df
-  inc hl
-  ld [hl], $0c
-  ld hl, $021c
-  add hl, sp
-  dec hl
-  ld c, [hl]
-  inc hl
-  ld b, [hl]
-  inc bc
-  inc bc
-  ld a, $ec
-  ld [bc], a
-  inc bc
-  ld a, $0c
-  ld [bc], a
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  ld hl, $0004
-  add hl, de
-  ld b, l
-  ld c, h
-  ld [hl], $f7
-  inc hl
-  ld [hl], $0c
-  ld hl, $021c
-  add hl, sp
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  ld hl, $0006
-  add hl, de
-  ld b, l
-  ld c, h
-  ld [hl], $02
-  inc hl
-  ld [hl], $0d
-  ld hl, $021c
-  add hl, sp
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  ld hl, $0008
-  add hl, de
-  ld b, l
-  ld c, h
-  ld [hl], $00
-  inc hl
-  ld [hl], $00
-  ld hl, $020d
-  add hl, sp
-
-jr_000_0aea:
-  ld a, l
-  ld d, h
-  ld hl, $0219
-  add hl, sp
-  ld [hl+], a
-  ld [hl], d
-  dec hl
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-  ld [hl], $df
-  inc hl
-  ld [hl], $0c
-  ld hl, $021a
-  add hl, sp
-  dec hl
-  ld c, [hl]
-  inc hl
-  ld b, [hl]
-  inc bc
-  inc bc
-  ld a, $0f
-  ld [bc], a
-  inc bc
-  ld a, $0d
-  ld [bc], a
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  ld hl, $0004
-  add hl, de
-  ld b, l
-  ld c, h
-  ld [hl], $1b
-  inc hl
-  ld [hl], $0d
-  ld hl, $021a
-  add hl, sp
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  ld hl, $0006
-  add hl, de
-  ld b, l
-  ld c, h
-  ld [hl], $25
-  inc hl
-  ld [hl], $0d
-  ld hl, $021a
-  add hl, sp
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  ld hl, $0008
-  add hl, de
-  ld b, l
-  ld c, h
-  ld [hl], $05
-  inc hl
-  ld [hl], $00
-  xor a
-  push af
-  inc sp
-  call InitializeMenuDisplayState
-  inc sp
-  ld hl, $021c
-  add hl, sp
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  xor a
-  push af
-  inc sp
-  push de
-  call Bank1Function67E6
-  add sp, $03
-  ld hl, $020c
-  add hl, sp
-  ld [hl], e
-  call GetInput
-  ld a, e
-  or a
-  jr nz, @ - 5
-  call ClearShadowScreen
-  xor a
-  push af
-  inc sp
-  call SetMenuTextMode
-  inc sp
-  ld hl, $0800
-  push hl
-  call SetMenuCursorAddress
-  add sp, $02
-  ld de, LoadingText
-  push de
-  call RenderMenuLabel
-  add sp, $02
-  call DrawToScreen0
-  ld hl, $020c
-  add hl, sp
-  ld a, [hl]
-  or a
-  jp nz, Jump_000_0cc2
-
-jr_000_0c48:
-  ld hl, sp+$0a
-  ld a, l
-  ld d, h
-  ld hl, $021b
-  add hl, sp
-  ld [hl+], a
-  ld [hl], d
-  dec hl
-  ld a, [hl+]
-  ld e, [hl]
-  ld hl, $0217
-  add hl, sp
-  ld [hl+], a
-  ld [hl], e
-  ld hl, $020a
-  add hl, sp
-  ld [hl], $00
-  inc hl
-  ld [hl], $00
-
-Jump_000_0c61:
-  call DisableStreaming
-  ld hl, $020b
-  add hl, sp
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  ld hl, sSaveStateWindow
-  add hl, de
-  ld c, l
-  ld b, h
-  push bc
-  call Cart_SetSectorPointerFromStack
-  add sp, $02
-  ld hl, $021c
-  add hl, sp
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  push de
-  call BufferWindow_CopyToHL
-  add sp, $02
-  call EnableStreaming
-  ld hl, $020b
-  add hl, sp
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  ld hl, $0040
-  add hl, de
-  ld c, l
-  ld b, h
-  push bc
-  call Cart_SetSectorPointerFromStack
-  add sp, $02
-  ld hl, $0218
-  add hl, sp
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  push de
-  call BufferWindow_CopyFromHL
-  add sp, $02
-  ld hl, $020a
-  add hl, sp
-  inc [hl]
-  jr nz, jr_000_0cb4
-
-  inc hl
-  inc [hl]
-
-jr_000_0cb4:
-  ld hl, $020a
-  add hl, sp
-  ld a, [hl]
-  sub $a4
-  inc hl
-  ld a, [hl]
-  sbc $00
-  jp c, Jump_000_0c61
-
-Jump_000_0cc2:
-  ld hl, $020c
-  add hl, sp
-  ld a, [hl]
-  dec a
-  jp nz, $0cc5
-  call EnableStreaming
-  ld hl, $0040
-  push hl
-  call Cart_SetSectorPointerFromStack
-  add sp, $02
-  ld de, SaveText2
-  ld a, $04
-  push af
-  inc sp
-  push de
-  ld hl, $be00
-  push hl
-  call Call_000_2b5a
-  add sp, $05
-  ld a, e
-  or a
-  jr nz, @ + 25
-  call ClearShadowScreen
-  ld hl, $021a
-  add hl, sp
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  xor a
-  push af
-  inc sp
-  push de
-  call Bank1Function67E6
-  add sp, $03
-  call RestoreSnapshotState
-  ld hl, sp + $0a
-  ld a, l
-  ld d, h
-  ld hl, $0217
-  add hl, sp
-  ld [hl+], a
-  ld [hl], d
-  dec hl
-  ld a, [hl+]
-  ld e, [hl]
-  inc hl
-  ld [hl+], a
-  ld [hl], e
-  ld hl, $020a
-  add hl, sp
-  ld [hl], $00
-  inc hl
-  ld [hl], $00
-  call EnableStreaming
-  ld hl, $020b
-  add hl, sp
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  ld hl, $0040
-  add hl, de
-  ld c, l
-  ld b, h
-  push bc
-  call Cart_SetSectorPointerFromStack
-  add sp, $02
-  ld hl, $0218
-  add hl, sp
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  push de
-  call BufferWindow_CopyToHL
-  add sp, $02
-  call DisableStreaming
-  ld hl, $020b
-  add hl, sp
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  ld hl, sSaveStateWindow
-  add hl, de
-  ld c, l
-  ld b, h
-  push bc
-  call Cart_SetSectorPointerFromStack
-  add sp, $02
-  ld hl, $021a
-  add hl, sp
-  dec hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  push de
-  call BufferWindow_CopyFromHL
-  add sp, $02
-  ld hl, $020a
-  add hl, sp
-  inc [hl]
-  jr nz, @ + 4
-  inc hl
-  inc [hl]
-  ld hl, $020a
-  add hl, sp
-  ld a, [hl]
-  sub $a4
-  inc hl
-  ld a, [hl]
-  sbc $00
-  jp c, $0c64
-  ld hl, $020c
-  add hl, sp
-  ld a, [hl]
-  sub $02
-  jr nz, jr_000_0cd3
-
-  ld hl, CartSwitch
-  ld [hl], $01
-  call EntryPoint
-
-jr_000_0cd3:
-  call RestoreSnapshotState
-  ld hl, $021d
-  add hl, sp
-  ld sp, hl
-  ret
-
-InGameMenuText:: DB "In Game Menu", 0  
-SaveStateText::  DB "Save State", 0
-LoadStateText::  DB "Load State", 0
-BackToMenuText:: DB "Back to menu", 0
-NoSaveDataText:: DB "there is no", 0, "save data", 0, "for current game", 0
-LoadingText::    DB "Loading...", 0
-SaveText2::      DB "SAVE", 0
-
+SECTION "ROM0 $0d46", ROM0[$0d46]
 Call_000_0d43:
   add sp, -$07
   call I2C_ResetBus
@@ -4227,7 +3836,7 @@ jr_000_1d5d:
   push af
   inc sp
   push de
-  call Bank1Function67E6
+  call ShowMenuDialog
   add sp, $03
   ld e, $00
 
@@ -4374,7 +3983,7 @@ jr_000_1e06:
   ld [hl], $00
 
 jr_000_1e18:
-  ld hl, $c2b2
+  ld hl, wMenuTextMode
   ld [hl], $00
   ld hl, $c2b3
 
@@ -4475,25 +4084,25 @@ LoadText:
   jr z, .done
 
     push hl
-  ld hl, $c2ad
+  ld hl, wMenuTextPointer
     ld a, [hl]
     ld hl, sp+$02
     ld [hl], a
     pop hl
     push hl
-  ld hl, $c2ae
+  ld hl, wMenuTextPointer+1
     ld a, [hl]
     ld hl, sp+$03
     ld [hl], a
     pop hl
     ld a, d
     inc bc
-  ld hl, $c2b2
+  ld hl, wMenuTextMode
     or [hl]
     pop de
     push de
     ld [de], a
-  ld hl, $c2ad
+  ld hl, wMenuTextPointer
     inc [hl]
   jr nz, .loadTextLoop
 
@@ -4523,16 +4132,16 @@ Call_000_2034:
   ld b, a
 
 jr_000_2049:
-  ld hl, $c2ae
+  ld hl, wMenuTextPointer+1
   dec hl
   ld e, [hl]
   inc hl
   ld d, [hl]
   ld a, b
-  ld hl, $c2b2
+  ld hl, wMenuTextMode
   or [hl]
   ld [de], a
-  ld hl, $c2ad
+  ld hl, wMenuTextPointer
   inc [hl]
   jr nz, jr_000_205e
 
@@ -4554,16 +4163,16 @@ jr_000_205e:
   ld b, a
 
 jr_000_206f:
-  ld hl, $c2ae
+  ld hl, wMenuTextPointer+1
   dec hl
   ld e, [hl]
   inc hl
   ld d, [hl]
   ld a, b
-  ld hl, $c2b2
+  ld hl, wMenuTextMode
   or [hl]
   ld [de], a
-  ld hl, $c2ad
+  ld hl, wMenuTextPointer
   inc [hl]
   ret nz
 
@@ -4735,12 +4344,12 @@ Jump_000_213f:
 
 
 ClearShadowScreen:
-  ld hl, $c2af
+  ld hl, wMenuCursorOffset
   ld [hl], $00
   inc hl
   ld [hl], $00
-  ld de, $c145
-  ld hl, $c2ad
+  ld de, wMenuScreenBuffer
+  ld hl, wMenuTextPointer
   ld [hl], e
   inc hl
   ld [hl], d
@@ -4756,7 +4365,7 @@ ClearShadowScreen:
 
 
 LoadOSInitText:
-  ld hl, $c2af
+  ld hl, wMenuCursorOffset
   ld a, [hl]
   add $14
   ld [hl+], a
@@ -4771,7 +4380,7 @@ LoadOSInitText:
   inc hl
   adc [hl]
   ld c, a
-  ld hl, $c2ad
+  ld hl, wMenuTextPointer
   ld [hl], b
   inc hl
   ld [hl], c
@@ -4786,7 +4395,7 @@ LoadOSInitText:
 
 
 RenderMenuLabel:
-  ld hl, $c2af
+  ld hl, wMenuCursorOffset
   ld a, [hl]
   add $14
   ld [hl+], a
@@ -4801,7 +4410,7 @@ RenderMenuLabel:
   inc hl
   adc [hl]
   ld c, a
-  ld hl, $c2ad
+  ld hl, wMenuTextPointer
   ld [hl], b
   inc hl
   ld [hl], c
@@ -4826,7 +4435,7 @@ RenderMenuLabel:
   ld b, a
   sra b
   rr c
-  ld hl, $c2ad
+  ld hl, wMenuTextPointer
   ld a, [hl]
   add c
   ld [hl+], a
@@ -4856,7 +4465,7 @@ jr_000_21e3:
   or a
   jr z, jr_000_21f6
 
-  ld hl, $c2af
+  ld hl, wMenuCursorOffset
   ld a, [hl]
   add $14
   ld [hl+], a
@@ -4867,14 +4476,14 @@ jr_000_21e3:
 
 jr_000_21f6:
   ld a, $45
-  ld hl, $c2af
+  ld hl, wMenuCursorOffset
   add [hl]
   ld b, a
   ld a, $c1
   inc hl
   adc [hl]
   ld c, a
-  ld hl, $c2ad
+  ld hl, wMenuTextPointer
   ld [hl], b
   inc hl
   ld [hl], c
@@ -4905,7 +4514,7 @@ SetMenuCursorAddress:
   add hl, bc
   ld a, l
   ld d, h
-  ld hl, $c2af
+  ld hl, wMenuCursorOffset
   ld [hl+], a
   ld [hl], d
   ld a, $45
@@ -4916,7 +4525,7 @@ SetMenuCursorAddress:
   inc hl
   adc [hl]
   ld c, a
-  ld hl, $c2ad
+  ld hl, wMenuTextPointer
   ld [hl], b
   inc hl
   ld [hl], c
@@ -4927,7 +4536,7 @@ SetMenuCursorAddress:
 GetSelectedMenuEntry:
   ld hl, $0014
   push hl
-  ld hl, $c2af
+  ld hl, wMenuCursorOffset
   ld a, [hl+]
   ld h, [hl]
   ld l, a
@@ -4961,7 +4570,7 @@ SetMenuTextMode:
   push hl
   ld hl, sp+$04
   ld a, [hl]
-  ld hl, $c2b2
+  ld hl, wMenuTextMode
   ld [hl], a
   pop hl
   ret
@@ -4994,7 +4603,7 @@ Jump_000_2285:
   ld hl, sp + $02
   ld [hl+], a
   ld [hl], $00
-  ld hl, $c2b2
+  ld hl, wMenuTextMode
   ld e, [hl]
   ld d, $00
   ld hl, sp+$06
@@ -5005,8 +4614,8 @@ Jump_000_2285:
   ld a, [hl]
   or d
   ld d, a
-  ld de, $c145
-  ld hl, $c2af
+  ld de, wMenuScreenBuffer
+  ld hl, wMenuCursorOffset
   ld a, [hl+]
   ld h, [hl]
   ld l, a
@@ -5028,7 +4637,7 @@ Jump_000_2285:
   call ClearC144toC2AB
   add sp, $05
   pop bc
-  ld hl, $c2af
+  ld hl, wMenuCursorOffset
   ld a, [hl]
   add $14
   ld [hl+], a
@@ -5162,7 +4771,8 @@ jr_000_236d:
   ret
 
 SECTION "String utils???", ROM0[$2b85]
-Call_000_2b5a:
+CompareBytesEqual:
+  ; Stack arguments: two byte pointers, count (byte). E = 1 if equal, 0 otherwise.
   add sp, -$05
   ld hl, sp+$08
   dec hl
@@ -5182,7 +4792,7 @@ Call_000_2b5a:
   ld [hl], a
   pop hl
 
-jr_000_2b71:
+CompareBytesEqual.nextByte:
   push hl
   ld hl, sp + $03
   ld a, [hl]
@@ -5194,7 +4804,7 @@ jr_000_2b71:
   ld hl, sp + $04
   ld a, [hl]
   or a
-  jr z, jr_000_2b9d
+  jr z, CompareBytesEqual.equal
 
   ld a, [bc]
   ld [hl], a
@@ -5209,25 +4819,25 @@ jr_000_2b71:
   ld [hl+], a
   inc hl
   inc [hl]
-  jr nz, jr_000_2b93
+  jr nz, CompareBytesEqual.compareByte
 
   inc hl
   inc [hl]
 
-jr_000_2b93:
+CompareBytesEqual.compareByte:
   ld hl, sp + $04
   ld a, [hl]
   ld hl, sp + $00
   sub [hl]
-  jp z, jr_000_2b71
+  jp z, CompareBytesEqual.nextByte
 
   ld e, $00
-  jr jr_000_2b9f
+  jr CompareBytesEqual.done
 
-jr_000_2b9d:
+CompareBytesEqual.equal:
   ld e, $01
 
-jr_000_2b9f:
+CompareBytesEqual.done:
   add sp, $05
   ret
 
@@ -6443,7 +6053,7 @@ Call_000_3197:
   ld hl, Address31CA
   push hl
   push de
-  call Call_000_2b5a
+  call CompareBytesEqual
   add sp, $05
   ld a, e
   or a
@@ -6461,7 +6071,7 @@ jr_000_31af:
   inc sp
   push bc
   push de
-  call Call_000_2b5a
+  call CompareBytesEqual
   add sp, $05
   ld a, e
   or a
