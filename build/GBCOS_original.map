@@ -26,19 +26,85 @@ ROM0 bank #0:
 	EMPTY: $0067-$00ff ($0099 bytes)
 	SECTION: $0100-$014f ($0050 bytes) ["Header"]
 	EMPTY: $0150-$01ef ($00a0 bytes)
-	SECTION: $01f0-$027f ($0090 bytes) ["Writable ROM0"]
-	         $01f0 = Writable01f0
-	         $01f1 = Writable01f1
-	         $01f2 = CartSwitch
-	         $01f3 = SaveStatePageCount
-	         $01f4 = Writable01f4
-	         $01f5 = Writable01f5
+	SECTION: $01f0-$01ff ($0010 bytes) ["OS runtime state"]
+	         $01f0 = OSSaveBackupPending
+	         $01f1 = OSInitializationPending
+	         $01f2 = OSReturnToMenuRequested
+	         $01f3 = SnapshotUse32KiBCartRAM
+	         $01f4 = OSStateReserved
+	SECTION: $0200-$027f ($0080 bytes) ["OS function pointer table"]
+	         $0200 = OSAPI_PrepareGame
+	         $0200 = OSFunctionTable
+	         $0202 = OSAPI_LaunchPreparedGame
+	         $0204 = OSAPI_ReadGameMetadata
+	         $0206 = OSAPI_WriteCartridgeBufferToFile
+	         $0208 = OSAPI_ReadFileToCartridgeBuffer
+	         $020a = OSAPI_SaveRegistry
+	         $020c = OSAPI_GetOSGlobalsPointer
+	         $020e = OSAPI_GetRegistryPointer
+	         $0210 = OSAPI_FindRandomGame
+	         $0212 = OSAPI_CallFarSRAM
+	         $0214 = OSAPI_SetSectorPointer
+	         $0216 = OSAPI_SelectSnapshotBuffer
+	         $0218 = OSAPI_SelectSaveRAM
+	         $021a = OSAPI_CopyMemory
+	         $021c = OSAPI_FillMemory
+	         $021e = OSAPI_GetButtonDown
+	         $0220 = OSAPI_GetInput
+	         $0222 = OSAPI_RenderNextTextLine
+	         $0224 = OSAPI_RenderMenuLabel
+	         $0226 = OSAPI_AdvanceMenuRows
+	         $0228 = OSAPI_GetMenuRow
+	         $022a = OSAPI_LoadText
+	         $022c = OSAPI_RenderDecimal32
+	         $022e = OSAPI_RenderHexByte
+	         $0230 = OSAPI_RenderHexWord
+	         $0232 = OSAPI_RenderHexDWord
+	         $0234 = OSAPI_ClearShadowScreen
+	         $0236 = OSAPI_UploadShadowScreen
+	         $0238 = OSAPI_SetMenuCursor
+	         $023a = OSAPI_RenderTextAtPosition
+	         $023c = OSAPI_SetMenuTextMode
+	         $023e = OSAPI_FillMenuRectangle
+	         $0240 = OSAPI_WaitVBlank
+	         $0242 = OSAPI_ReadDirectoryIndex
+	         $0244 = OSAPI_GetDirectoryEntryCount
+	         $0246 = OSAPI_OpenFileFromEntry
+	         $0248 = OSAPI_OpenFileByPath
+	         $024a = OSAPI_ReadFileSectors
+	         $024c = OSAPI_WriteFileSectors
+	         $024e = OSAPI_ReadDirectoryEntry
+	         $0250 = OSAPI_BuildPathWithExtension
+	         $0252 = OSAPI_GetParentDirectoryCluster
+	         $0254 = OSAPI_GetDirectoryCluster
+	         $0256 = OSAPI_GetDirectoryEntryIDs
+	         $0258 = OSAPI_RemoveDirectoryEntryID
+	         $025a = OSAPI_StringLength
+	         $025c = OSAPI_StringEndsWithIgnoreCase
+	         $025e = OSAPI_StringMatchesSuffixList
+	         $0260 = OSAPI_CompareBytesEqual
+	         $0262 = OSAPI_ShowMenuDialog
+	         $0264 = OSAPI_ResetStatusText
+	         $0266 = OSAPI_AppendStatusText
+	         $0268 = OSAPI_AppendStatusDecimal32
+	         $026a = OSAPI_AppendStatusHexByte
+	         $026c = OSAPI_AppendStatusHexWord
+	         $026e = OSAPI_SetDialogRow
+	         $0270 = OSAPI_ReadI2CBytes
+	         $0272 = OSAPI_WriteI2CBytes
+	         $0274 = OSAPI_Bank1Entry5C74
+	         $0276 = OSAPI_Bank1Entry5B2C
+	         $0278 = OSAPI_Bank1Entry5ACD
+	         $027a = OSAPI_Bank1Entry5B09
+	         $027c = OSAPI_Bank1Entry5B8D
+	         $027e = OSAPI_Bank1Entry5C17
+	         $0280 = OSFunctionTableEnd
 	SECTION: $0280-$02c7 ($0048 bytes) ["Bank 0 Code, A"]
 	         $0280 = EntryPoint
-	         $0289 = EntryPoint.checkCartSwitch
+	         $0289 = EntryPoint.checkReturnToMenuRequest
 	         $0290 = InitializeCart
 	         $02a9 = SetInterrupts
-	         $02bc = CartSwitchPressed
+	         $02bc = HandleReturnToMenuRequest
 	         $02c6 = LoopForever
 	SECTION: $02c8-$0452 ($018b bytes) ["SD Card SPI Low-Level Routines"]
 	         $02c8 = SD_SPI_TransferByte
@@ -143,8 +209,8 @@ ROM0 bank #0:
 	         $075f = SaveCGBState.copyBackgroundPalettes
 	         $076a = SaveCGBState.copyObjectPalettes
 	         $0789 = SaveCGBState.copyWRAMBanks
-	         $079a = GetSaveStatePageCount
-	         $07a5 = GetSaveStatePageCount.done
+	         $079a = GetSnapshotCartRAMChunkCount
+	         $07a5 = GetSnapshotCartRAMChunkCount.done
 	         $07a6 = CopyDEtoBD02
 	         $07af = DetectCGBMode
 	         $07cc = DetectCGBMode.isDMG
@@ -234,7 +300,7 @@ ROM0 bank #0:
 	         $0df9 = InitializeStorageAndSettings.checkRTC
 	         $0e09 = InitializeStorageAndSettings.checkSaveRAM
 	         $0e17 = InitializeStorageAndSettings.handleSaveError
-	         $0e3a = InitializeStorageAndSettings.restorePendingSave
+	         $0e3a = InitializeStorageAndSettings.backupPendingSave
 	         $0e4a = InitializeStorageAndSettings.checkSystemWordLimit
 	         $0e67 = InitializeStorageAndSettings.success
 	         $0e69 = InitializeStorageAndSettings.done
@@ -377,13 +443,14 @@ ROM0 bank #0:
 	         $1e80 = InitializeMenuDisplayState.muteAudio
 	         $1e85 = InitializeMenuDisplayState.configureLCD
 	SECTION: $1ed3-$1fa3 ($00d1 bytes) ["Display initialization continuation"]
-	         $1ed3 = InitializeMenuDisplayState.loadNextPaletteColor
-	         $1f0a = InitializeMenuDisplayState.checkPaletteCount
-	         $1f16 = InitializeMenuDisplayState.loadFont
-	         $1f23 = InitializeMenuDisplayState.nextFontByte
-	         $1f46 = InitializeMenuDisplayState.writeInvertedFontByte
-	         $1f62 = InitializeMenuDisplayState.checkFontCount
-	         $1fa1 = InitializeMenuDisplayState.done
+	         $1ed3 = InitializeMenuPalette
+	         $1ed3 = InitializeMenuPalette.nextColor
+	         $1f0a = InitializeMenuPalette.checkPaletteCount
+	         $1f16 = InitializeMenuFont
+	         $1f23 = InitializeMenuFont.nextFontByte
+	         $1f46 = InitializeMenuFont.writeInvertedFontByte
+	         $1f62 = InitializeMenuFont.checkFontCount
+	         $1fa1 = InitializeMenuFont.done
 	SECTION: $1fa4-$1faf ($000c bytes) ["UI palette"]
 	         $1fa4 = UIColors
 	         $1fa4 = BackgroundColor
@@ -694,8 +761,8 @@ ROM0 bank #0:
 
 ROMX bank #1:
 	SECTION: $4000-$407d ($007e bytes) ["ROM Bank 1 Data"]
-	         $4000 = BuildPathWithExtension.continueAt4000
-	         $401d = BuildPathWithExtension.keepOriginalName
+	         $4000 = BuildPathWithExtensionContinuation
+	         $401d = BuildPathKeepOriginalName
 	         $4046 = Bank1Data4030
 	SECTION: $407e-$73e0 ($3363 bytes) ["ROM Bank 1 Code"]
 	         $407e = Bank1Function4067

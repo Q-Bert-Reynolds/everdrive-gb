@@ -61,10 +61,10 @@ EntryPoint:
   ld a, EDGB_UNLOCK_KEY
   ld [sEDGBUnlock], a; Unlock EverDrive FPGA hardware registers ($A5 is the unlock key)
   
-.checkCartSwitch
-  ld a, [CartSwitch]
+.checkReturnToMenuRequest
+  ld a, [OSReturnToMenuRequested]
   cp $00
-  jr nz, CartSwitchPressed
+  jr nz, HandleReturnToMenuRequest
 
 InitializeCart::
   ld sp, OS_STACK_TOP;end of ram
@@ -89,11 +89,11 @@ SetInterrupts::;probably not the only thing this does
   ld [sCurrentBank], a; Select OS SRAM Bank 4
   ret
 
-CartSwitchPressed:
-  ; "Back to menu" reaches here with CartSwitch=1. The $10 config write
+HandleReturnToMenuRequest:
+  ; "Back to menu" reaches here with OSReturnToMenuRequested=1. The $10 config write
   ; requests the cart's OS reboot; the CPU spins while the hardware acts.
   ld a, $00
-  ld [CartSwitch], a
+  ld [OSReturnToMenuRequested], a
   ld a, $10
   ld [sStreamingConfig], a
 

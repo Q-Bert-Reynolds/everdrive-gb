@@ -81,6 +81,7 @@ DEF wRandomSequence EQU $c2b7 ; word
 
 ; Registry in WRAM. The last word is an additive checksum of the first $0108 bytes.
 DEF wOSSystemType EQU $c001
+DEF wOSFirstInitialization EQU $c004 ; copy of OSInitializationPending before it is cleared
 DEF wSystemDirectoryCluster EQU $c027 ; dword
 DEF wRegistry EQU $c02b
 DEF REGISTRY_SIZE EQU $010a

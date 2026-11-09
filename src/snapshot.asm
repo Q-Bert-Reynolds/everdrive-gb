@@ -163,10 +163,10 @@ SaveBankedState:
   ; game save RAM; clear it to write the temporary snapshot instead.
   and $01
   ldh [rSVBK], a
-  call GetSaveStatePageCount
+  call GetSnapshotCartRAMChunkCount
   ld de, $0000
 
-SaveBankedState.copyCartRAM:
+.copyCartRAM:
   push bc
   call CopyDEtoBD02
   call EnableStreaming
@@ -189,7 +189,7 @@ SaveBankedState.copyCartRAM:
   ld e, a
   pop bc
   dec c
-  jr nz, SaveBankedState.copyCartRAM
+  jr nz, .copyCartRAM
 
   ret
 
@@ -203,16 +203,16 @@ SaveCGBState:
   call DetectCGBMode
   ld hl, sBufferWindow
 
-SaveCGBState.copyBackgroundPalettes:
+.copyBackgroundPalettes:
   ld a, l
   ldh [rBCPS], a
   ldh a, [rBCPD]
   ld [hl+], a
   ld a, l
   and $3f
-  jr nz, SaveCGBState.copyBackgroundPalettes
+  jr nz, .copyBackgroundPalettes
 
-SaveCGBState.copyObjectPalettes:
+.copyObjectPalettes:
   ld a, l
   and $3f
   ldh [rOCPS], a
@@ -220,7 +220,7 @@ SaveCGBState.copyObjectPalettes:
   ld [hl+], a
   ld a, l
   and $3f
-  jr nz, SaveCGBState.copyObjectPalettes
+  jr nz, .copyObjectPalettes
 
   call IncrementBD02
   ld a, $01
@@ -231,7 +231,7 @@ SaveCGBState.copyObjectPalettes:
   ld b, $02
   ld a, b
 
-SaveCGBState.copyWRAMBanks:
+.copyWRAMBanks:
   ldh [rSVBK], a
   ld de, _RAMBANK
   ld c, $08
@@ -239,14 +239,15 @@ SaveCGBState.copyWRAMBanks:
   inc b
   ld a, b
   cp $08
-  jr nz, SaveCGBState.copyWRAMBanks
+  jr nz, .copyWRAMBanks
 
   ret
 
 
-GetSaveStatePageCount:
+GetSnapshotCartRAMChunkCount:
+  ; C counts 8 KiB chunks, not 512-byte sectors. The flag itself is only 0/1.
   ld c, $01
-  ld a, [SaveStatePageCount]
+  ld a, [SnapshotUse32KiBCartRAM]
   cp $00
   jr z, .done
   ld c, $04
@@ -370,10 +371,10 @@ RestoreDisplayBuffers:
 RestoreBankedState:
   and $01
   ldh [rSVBK], a
-  call GetSaveStatePageCount
+  call GetSnapshotCartRAMChunkCount
   ld de, sSavedScreenState
 
-RestoreBankedState.copyCartRAM:
+.copyCartRAM:
   push bc
   call CopyDEtoBD02
   call DisableStreaming
@@ -395,7 +396,7 @@ RestoreBankedState.copyCartRAM:
   ld e, a
   pop bc
   dec c
-  jr nz, RestoreBankedState.copyCartRAM
+  jr nz, .copyCartRAM
 
   ld a, HIGH(SNAPSHOT_FIRST_SECTOR)
   ld [sBufferSectorHigh], a
@@ -431,16 +432,16 @@ RestoreCGBState:
   ld [sBufferSectorLow], a
   ld hl, sBufferWindow
 
-RestoreCGBState.copyBackgroundPalettes:
+.copyBackgroundPalettes:
   ld a, l
   ldh [rBCPS], a
   ld a, [hl+]
   ldh [rBCPD], a
   ld a, l
   and $3f
-  jr nz, RestoreCGBState.copyBackgroundPalettes
+  jr nz, .copyBackgroundPalettes
 
-RestoreCGBState.copyObjectPalettes:
+.copyObjectPalettes:
   ld a, l
   and $3f
   ldh [rOCPS], a
@@ -448,7 +449,7 @@ RestoreCGBState.copyObjectPalettes:
   ldh [rOCPD], a
   ld a, l
   and $3f
-  jr nz, RestoreCGBState.copyObjectPalettes
+  jr nz, .copyObjectPalettes
 
   call IncrementBD02
   ld a, $01
@@ -459,7 +460,7 @@ RestoreCGBState.copyObjectPalettes:
   ld b, $02
   ld a, b
 
-RestoreCGBState.copyWRAMBanks:
+.copyWRAMBanks:
   ldh [rSVBK], a
   ld hl, _RAMBANK
   ld c, $08
@@ -467,8 +468,7 @@ RestoreCGBState.copyWRAMBanks:
   inc b
   ld a, b
   cp $08
-  jr nz, RestoreCGBState.copyWRAMBanks
-
+  jr nz, .copyWRAMBanks
   ret
 
 
@@ -517,9 +517,6 @@ SnapshotFallback:
   ld [sCartSwitch], a
   jp OSIdleLoop
 
-
-
-; Wait for a cartridge mapping transition
 
 SECTION "Wait for a cartridge mapping transition", ROM0[$09be]
 

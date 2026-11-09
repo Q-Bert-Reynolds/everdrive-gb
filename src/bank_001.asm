@@ -2,11 +2,11 @@ SECTION "ROM Bank 1 Data", ROMX[$4000], BANK[1]
 
 ; Continuation of paths.asm past the ROM0 boundary. Keep the encoded bytes
 ; here until the rest of bank 1 is decoded; the labels name actual CPU targets.
-BuildPathWithExtension.continueAt4000::
+BuildPathWithExtensionContinuation::
   DB $22, $73, $f8, $06, $2b, $5e, $23, $56, $1a, $b7, $28, $0c
   DB $2b, $34, $20, $02, $23, $34, $e6, $df, $02, $03, $18, $ea
   DB $af, $02, $c3, $7b, $40
-BuildPathWithExtension.keepOriginalName::
+BuildPathKeepOriginalName::
   DB $f8, $04, $2b, $4e, $23, $46, $0a, $b7, $28, $0b, $d6, $2e
   DB $20, $04, $f8, $00, $36, $01, $03, $18, $f1, $f8, $05, $71
   DB $23, $70, $f8, $00, $7e, $b7, $28, $0d, $0a, $d6, $2e, $28
@@ -7380,7 +7380,7 @@ Call_001_6402:
   ld b, d
   push de
   push bc
-  ld hl, SaveStatePageCount
+  ld hl, $01f3 ; stack-frame offset; not an OS state reference
   add hl, sp
   ld a, [hl+]
   ld h, [hl]
@@ -7388,7 +7388,7 @@ Call_001_6402:
   push hl
   ld hl, $c04d
   push hl
-  ld hl, Writable01f5
+  ld hl, $01f5 ; stack-frame offset; not an OS state reference
   add hl, sp
   ld a, [hl+]
   ld h, [hl]
@@ -7568,7 +7568,7 @@ Call_001_64fc:
   ld b, d
   push de
   push bc
-  ld hl, Writable01f1
+  ld hl, $01f1 ; stack-frame offset; not an OS state reference
   add hl, sp
   ld a, [hl+]
   ld h, [hl]
@@ -7576,7 +7576,7 @@ Call_001_64fc:
   push hl
   ld hl, $c04d
   push hl
-  ld hl, SaveStatePageCount
+  ld hl, $01f3 ; stack-frame offset; not an OS state reference
   add hl, sp
   ld a, [hl+]
   ld h, [hl]

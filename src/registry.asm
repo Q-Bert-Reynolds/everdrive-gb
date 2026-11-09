@@ -17,7 +17,7 @@ CheckSaveRAMMarker:
   ld hl, sp+$01
   ld [hl], $00
 
-CheckSaveRAMMarker.nextByte:
+.nextByte:
   ld hl, sp+$01
   ld e, [hl]
   ld d, $00
@@ -28,38 +28,38 @@ CheckSaveRAMMarker.nextByte:
   ld hl, sp+$04
   ld a, [hl]
   or a
-  jr z, CheckSaveRAMMarker.compareByte
+  jr z, .compareByte
 
   ld hl, sp+$01
   ld a, [hl]
   ld [bc], a
 
-CheckSaveRAMMarker.compareByte:
+.compareByte:
   ld a, [bc]
   ld d, a
   ld hl, sp+$01
   ld a, [hl]
   sub d
-  jr z, CheckSaveRAMMarker.advanceByte
+  jr z, .advanceByte
 
   ld hl, sp+$00
   ld [hl], $38
 
-CheckSaveRAMMarker.advanceByte:
+.advanceByte:
   ld hl, sp+$01
   inc [hl]
   ld a, [hl]
   sub $10
-  jr c, CheckSaveRAMMarker.nextByte
+  jr c, .nextByte
 
   ld a, [wGameRAMMask]
   sub $0f
-  jr nz, CheckSaveRAMMarker.done
+  jr nz, .done
 
   dec hl
   ld [hl], $00
 
-CheckSaveRAMMarker.done:
+.done:
   ld hl, sp+$00
   ld e, [hl]
   add sp, $02
@@ -106,7 +106,7 @@ SECTION "Registry defaults and persistence", ROM0[$0fb5]
 
 ResetRegistryDefaults:
   ; Clear the $010a-byte registry, write signature $1234 and default options,
-  ; then persist the defaults through SaveRegistry.
+  ; then persist the defaults through .
   ld de, wRegistry
   ld hl, REGISTRY_SIZE
   push hl
@@ -153,7 +153,7 @@ LoadRegistry:
   add sp, $06
   ld a, e
   or a
-  jp nz, LoadRegistry.done
+  jp nz, .done
 
   ld de, wRegistry
   ld hl, $0000
@@ -174,11 +174,11 @@ LoadRegistry:
   ld c, a
   ld a, b
   sub $34
-  jr nz, LoadRegistry.invalid
+  jr nz, .invalid
 
   ld a, c
   sub $12
-  jr nz, LoadRegistry.invalid
+  jr nz, .invalid
 
   ld de, wRegistryChecksum
   ld a, [de]
@@ -189,24 +189,24 @@ LoadRegistry:
   ld hl, sp+$00
   ld a, [hl]
   sub b
-  jr nz, LoadRegistry.invalid
+  jr nz, .invalid
   inc hl
   ld a, [hl]
   sub c
-  jr z, LoadRegistry.applyButtonSwap
+  jr z, .applyButtonSwap
 
-LoadRegistry.invalid:
+.invalid:
   ld e, $35
-  jr LoadRegistry.done
+  jr .done
 
-LoadRegistry.applyButtonSwap:
+.applyButtonSwap:
   ld bc, wRegistrySwapAB
   ld a, [bc]
   ld hl, SwapABFlag
   ld [hl], a
   ld e, $00
 
-LoadRegistry.done:
+.done:
   add sp, $02
   ret
 
@@ -242,7 +242,7 @@ SaveRegistry:
   add sp, $06
   ld a, e
   or a
-  jr nz, SaveRegistry.done
+  jr nz, .done
 
   ld de, wRegistry
   ld a, $01
@@ -255,7 +255,7 @@ SaveRegistry:
   add sp, $05
   ld a, e
   or a
-  jr nz, SaveRegistry.done
+  jr nz, .done
 
   ld bc, wRegistrySwapAB
   ld a, [bc]
@@ -263,7 +263,7 @@ SaveRegistry:
   ld [hl], a
   ld e, $00
 
-SaveRegistry.done:
+.done:
   add sp, $7f
   add sp, $66
   ret

@@ -58,13 +58,13 @@ RenderHexByte:
   ld b, a
   ld a, $39
   sub b
-  jr nc, RenderHexByte.writeHighNibble
+  jr nc, .writeHighNibble
 
   ld a, b
   add $07
   ld b, a
 
-RenderHexByte.writeHighNibble:
+.writeHighNibble:
   ld hl, wMenuTextPointer+1
   dec hl
   ld e, [hl]
@@ -76,12 +76,12 @@ RenderHexByte.writeHighNibble:
   ld [de], a
   ld hl, wMenuTextPointer
   inc [hl]
-  jr nz, RenderHexByte.formatLowNibble
+  jr nz, .formatLowNibble
 
   inc hl
   inc [hl]
 
-RenderHexByte.formatLowNibble:
+.formatLowNibble:
   ld hl, sp+$02
   ld a, [hl]
   and $0f
@@ -89,13 +89,13 @@ RenderHexByte.formatLowNibble:
   ld b, a
   ld a, $39
   sub b
-  jr nc, RenderHexByte.writeLowNibble
+  jr nc, .writeLowNibble
 
   ld a, b
   add $07
   ld b, a
 
-RenderHexByte.writeLowNibble:
+.writeLowNibble:
   ld hl, wMenuTextPointer+1
   dec hl
   ld e, [hl]
@@ -146,13 +146,13 @@ RenderHexDWord:
   pop af
   ld a, $10
 
-RenderHexDWord.shiftHighWord:
+.shiftHighWord:
   srl c
   rr b
   rr d
   rr e
   dec a
-  jr nz, RenderHexDWord.shiftHighWord
+  jr nz, .shiftHighWord
 
   push de
   call RenderHexWord
@@ -182,19 +182,19 @@ RenderDecimal32:
   or [hl]
   dec hl
   or [hl]
-  jr nz, RenderDecimal32.storeDigitPointer
+  jr nz, .storeDigitPointer
 
   dec bc
   ld a, $30
   ld [bc], a
 
-RenderDecimal32.storeDigitPointer:
+.storeDigitPointer:
   ld hl, sp+$0b
   ld [hl], c
   inc hl
   ld [hl], b
 
-RenderDecimal32.nextDigit:
+.nextDigit:
   ld hl, sp+$0f
   ld a, [hl+]
   or [hl]
@@ -202,7 +202,7 @@ RenderDecimal32.nextDigit:
   or [hl]
   inc hl
   or [hl]
-  jp z, RenderDecimal32.renderDigits
+  jp z, .renderDigits
 
   ld hl, sp+$0c
   dec hl
@@ -266,10 +266,10 @@ RenderDecimal32.nextDigit:
   ld [hl], b
   inc hl
   ld [hl], c
-  jp RenderDecimal32.nextDigit
+  jp .nextDigit
 
 
-RenderDecimal32.renderDigits:
+.renderDigits:
   ld hl, sp+$0b
   ld a, [hl+]
   ld h, [hl]
@@ -362,7 +362,7 @@ RenderMenuLabel:
   ld c, e
   ld a, $12
   sub c
-  jr c, RenderMenuLabel.renderText
+  jr c, .renderText
 
   ld b, $00
   ld a, $14
@@ -381,7 +381,7 @@ RenderMenuLabel:
   adc b
   ld [hl], a
 
-RenderMenuLabel.renderText:
+.renderText:
   pop bc
   pop hl
   push hl
@@ -396,12 +396,12 @@ SetMenuCursor:
   ld hl, sp+$02
   ld b, [hl]
 
-SetMenuCursor.nextRow:
+.nextRow:
   ld c, b
   dec b
   ld a, c
   or a
-  jr z, SetMenuCursor.setTextPointer
+  jr z, .setTextPointer
 
   ld hl, wMenuCursorOffset
   ld a, [hl]
@@ -410,9 +410,9 @@ SetMenuCursor.nextRow:
   ld a, [hl]
   adc $00
   ld [hl], a
-  jr SetMenuCursor.nextRow
+  jr .nextRow
 
-SetMenuCursor.setTextPointer:
+.setTextPointer:
   ld a, $45
   ld hl, wMenuCursorOffset
   add [hl]

@@ -530,7 +530,7 @@ LaunchPreparedGame:
   or a
   jr nz, .initializeLaunchService
 
-  ld hl, Writable01f0
+  ld hl, OSSaveBackupPending
   ld [hl], $01
   call Bank1Function6471
   ld a, e
@@ -601,7 +601,7 @@ LaunchPreparedGame:
   inc sp
 
 .configureSnapshotRAM:
-  ld hl, SaveStatePageCount
+  ld hl, SnapshotUse32KiBCartRAM
   ld [hl], $00
   ld a, [wGameRAMMask]
   or a

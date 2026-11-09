@@ -1,5 +1,3 @@
-; Game header decoding
-
 SECTION "Game header decoding", ROM0[$12b1]
 
 ReadGameMetadata:
@@ -155,13 +153,13 @@ ReadGameMetadata:
   ld c, e
   ld a, c
   or a
-  jr z, ReadGameMetadata.readHeader
+  jr z, .readHeader
 
   ld e, c
-  jp ReadGameMetadata.done
+  jp .done
 
 
-ReadGameMetadata.readHeader:
+.readHeader:
   ld hl, sp + $12
   ld c, l
   ld b, h
@@ -179,7 +177,7 @@ ReadGameMetadata.readHeader:
   pop bc
   ld a, e
   or a
-  jp nz, ReadGameMetadata.done
+  jp nz, .done
 
   ld hl, $0228
   add hl, sp
@@ -264,76 +262,76 @@ ReadGameMetadata.readHeader:
   ld [hl], $05
   ld a, b
   or a
-  jr nz, ReadGameMetadata.checkMBC1
+  jr nz, .checkMBC1
 
   ld [hl], $04
 
-ReadGameMetadata.checkMBC1:
+.checkMBC1:
   ld a, b
   sub $01
-  jr c, ReadGameMetadata.checkMBC2
+  jr c, .checkMBC2
 
   ld a, $03
   sub b
-  jr c, ReadGameMetadata.checkMBC2
+  jr c, .checkMBC2
 
   ld hl, $0212
   add hl, sp
   ld [hl], $01
 
-ReadGameMetadata.checkMBC2:
+.checkMBC2:
   ld a, b
   sub $05
-  jr c, ReadGameMetadata.checkROMWithRAM
+  jr c, .checkROMWithRAM
 
   ld a, $06
   sub b
-  jr c, ReadGameMetadata.checkROMWithRAM
+  jr c, .checkROMWithRAM
 
   ld hl, $0212
   add hl, sp
   ld [hl], $02
 
-ReadGameMetadata.checkROMWithRAM:
+.checkROMWithRAM:
   ld a, b
   sub $08
-  jr c, ReadGameMetadata.checkMBC3
+  jr c, .checkMBC3
 
   ld a, $09
   sub b
-  jr c, ReadGameMetadata.checkMBC3
+  jr c, .checkMBC3
 
   ld hl, $0212
   add hl, sp
   ld [hl], $04
 
-ReadGameMetadata.checkMBC3:
+.checkMBC3:
   ld a, b
   sub $0f
-  jr c, ReadGameMetadata.checkMBC5
+  jr c, .checkMBC5
 
   ld a, $13
   sub b
-  jr c, ReadGameMetadata.checkMBC5
+  jr c, .checkMBC5
 
   ld hl, $0212
   add hl, sp
   ld [hl], $03
 
-ReadGameMetadata.checkMBC5:
+.checkMBC5:
   ld a, b
   sub $19
-  jr c, ReadGameMetadata.storeMapper
+  jr c, .storeMapper
 
   ld a, $1e
   sub b
-  jr c, ReadGameMetadata.storeMapper
+  jr c, .storeMapper
 
   ld hl, $0212
   add hl, sp
   ld [hl], $05
 
-ReadGameMetadata.storeMapper:
+.storeMapper:
   ld hl, $0223
   add hl, sp
   dec hl
@@ -365,12 +363,12 @@ ReadGameMetadata.storeMapper:
   ld [hl], $00
   ld a, b
   cp $0f
-  jr z, ReadGameMetadata.enableRTC
+  jr z, .enableRTC
 
   sub $10
-  jr nz, ReadGameMetadata.decodeRAMSize
+  jr nz, .decodeRAMSize
 
-ReadGameMetadata.enableRTC:
+.enableRTC:
   ld hl, $0216
   add hl, sp
   ld a, [hl+]
@@ -378,7 +376,7 @@ ReadGameMetadata.enableRTC:
   ld l, a
   ld [hl], $01
 
-ReadGameMetadata.decodeRAMSize:
+.decodeRAMSize:
   ld hl, $0223
   add hl, sp
   dec hl
@@ -418,29 +416,29 @@ ReadGameMetadata.decodeRAMSize:
   ld a, [de]
   ld b, a
   dec a
-  jr nz, ReadGameMetadata.ramCodeNotOne
+  jr nz, .ramCodeNotOne
 
   ld a, $01
-  jr ReadGameMetadata.checkRAMCodeTwo
+  jr .checkRAMCodeTwo
 
-ReadGameMetadata.ramCodeNotOne:
+.ramCodeNotOne:
   xor a
 
-ReadGameMetadata.checkRAMCodeTwo:
+.checkRAMCodeTwo:
   ld d, a
   ld a, b
   sub $02
-  jr nz, ReadGameMetadata.ramCodeNotTwo
+  jr nz, .ramCodeNotTwo
 
   ld a, $01
-  jr ReadGameMetadata.combineSmallRAMCodes
+  jr .combineSmallRAMCodes
 
-ReadGameMetadata.ramCodeNotTwo:
+.ramCodeNotTwo:
   xor a
 
-ReadGameMetadata.combineSmallRAMCodes:
+.combineSmallRAMCodes:
   or d
-  jr z, ReadGameMetadata.checkRAMCodeThree
+  jr z, .checkRAMCodeThree
 
   ld hl, $0216
   add hl, sp
@@ -449,7 +447,7 @@ ReadGameMetadata.combineSmallRAMCodes:
   ld l, a
   ld [hl], $00
 
-ReadGameMetadata.checkRAMCodeThree:
+.checkRAMCodeThree:
   ld hl, $021f
   add hl, sp
   dec hl
@@ -458,7 +456,7 @@ ReadGameMetadata.checkRAMCodeThree:
   ld d, [hl]
   ld a, [de]
   sub $03
-  jr nz, ReadGameMetadata.checkRAMCodeFour
+  jr nz, .checkRAMCodeFour
 
   ld hl, $0216
   add hl, sp
@@ -467,7 +465,7 @@ ReadGameMetadata.checkRAMCodeThree:
   ld l, a
   ld [hl], $03
 
-ReadGameMetadata.checkRAMCodeFour:
+.checkRAMCodeFour:
   ld hl, $021f
   add hl, sp
   dec hl
@@ -476,7 +474,7 @@ ReadGameMetadata.checkRAMCodeFour:
   ld d, [hl]
   ld a, [de]
   sub $04
-  jr nz, ReadGameMetadata.checkRAMCodeFive
+  jr nz, .checkRAMCodeFive
 
   ld hl, $0216
   add hl, sp
@@ -485,7 +483,7 @@ ReadGameMetadata.checkRAMCodeFour:
   ld l, a
   ld [hl], $0f
 
-ReadGameMetadata.checkRAMCodeFive:
+.checkRAMCodeFive:
   ld hl, $021f
   add hl, sp
   dec hl
@@ -494,7 +492,7 @@ ReadGameMetadata.checkRAMCodeFive:
   ld d, [hl]
   ld a, [de]
   sub $05
-  jr nz, ReadGameMetadata.checkMBC2RAM
+  jr nz, .checkMBC2RAM
 
   ld hl, $0216
   add hl, sp
@@ -503,12 +501,12 @@ ReadGameMetadata.checkRAMCodeFive:
   ld l, a
   ld [hl], $07
 
-ReadGameMetadata.checkMBC2RAM:
+.checkMBC2RAM:
   ld hl, $0212
   add hl, sp
   ld a, [hl]
   sub $02
-  jr nz, ReadGameMetadata.checkLSDJ
+  jr nz, .checkLSDJ
 
   ld hl, $0216
   add hl, sp
@@ -517,12 +515,12 @@ ReadGameMetadata.checkMBC2RAM:
   ld l, a
   ld [hl], $00
 
-ReadGameMetadata.checkLSDJ:
+.checkLSDJ:
   ld hl, $0212
   add hl, sp
   ld a, [hl]
   sub $05
-  jr nz, ReadGameMetadata.findBatteryType
+  jr nz, .findBatteryType
 
   ld de, LSDJTitlePrefix
   ld a, $04
@@ -539,7 +537,7 @@ ReadGameMetadata.checkLSDJ:
   add sp, $05
   ld a, e
   or a
-  jr z, ReadGameMetadata.findBatteryType
+  jr z, .findBatteryType
 
   ld hl, $0216
   add hl, sp
@@ -548,7 +546,7 @@ ReadGameMetadata.checkLSDJ:
   ld l, a
   ld [hl], $0f
 
-ReadGameMetadata.findBatteryType:
+.findBatteryType:
   ld hl, $0223
   add hl, sp
   dec hl
@@ -572,7 +570,7 @@ ReadGameMetadata.findBatteryType:
   add hl, sp
   ld [hl], $00
 
-ReadGameMetadata.nextBatteryType:
+.nextBatteryType:
   ld hl, $021d
   add hl, sp
   dec hl
@@ -589,7 +587,7 @@ ReadGameMetadata.nextBatteryType:
   ld a, [bc]
   ld b, a
   or a
-  jr z, ReadGameMetadata.computeROMMask
+  jr z, .computeROMMask
 
   ld hl, $0215
   add hl, sp
@@ -601,7 +599,7 @@ ReadGameMetadata.nextBatteryType:
   ld c, a
   ld a, b
   sub c
-  jr nz, ReadGameMetadata.advanceBatteryType
+  jr nz, .advanceBatteryType
 
   ld hl, $021e
   add hl, sp
@@ -609,16 +607,16 @@ ReadGameMetadata.nextBatteryType:
   ld h, [hl]
   ld l, a
   ld [hl], $01
-  jr ReadGameMetadata.computeROMMask
+  jr .computeROMMask
 
-ReadGameMetadata.advanceBatteryType:
+.advanceBatteryType:
   ld hl, $0213
   add hl, sp
   inc [hl]
-  jp ReadGameMetadata.nextBatteryType
+  jp .nextBatteryType
 
 
-ReadGameMetadata.computeROMMask:
+.computeROMMask:
   ld hl, $0223
   add hl, sp
   dec hl
@@ -657,7 +655,7 @@ ReadGameMetadata.computeROMMask:
   ld c, l
   ld b, h
 
-ReadGameMetadata.growROMMask:
+.growROMMask:
   ld e, c
   ld d, b
   ld a, [de]
@@ -692,7 +690,7 @@ ReadGameMetadata.growROMMask:
   inc de
   ld a, [de]
   sbc [hl]
-  jp nc, ReadGameMetadata.decodeSGB
+  jp nc, .decodeSGB
 
   ld hl, $021f
   add hl, sp
@@ -724,10 +722,10 @@ ReadGameMetadata.growROMMask:
   rl [hl]
   inc hl
   rl [hl]
-  jp ReadGameMetadata.growROMMask
+  jp .growROMMask
 
 
-ReadGameMetadata.decodeSGB:
+.decodeSGB:
   ld hl, $0223
   add hl, sp
   dec hl
@@ -752,15 +750,15 @@ ReadGameMetadata.decodeSGB:
   inc bc
   ld a, [bc]
   sub $03
-  jr nz, ReadGameMetadata.notSGB
+  jr nz, .notSGB
 
   ld b, $01
-  jr ReadGameMetadata.storeSGBFlag
+  jr .storeSGBFlag
 
-ReadGameMetadata.notSGB:
+.notSGB:
   ld b, $00
 
-ReadGameMetadata.storeSGBFlag:
+.storeSGBFlag:
   ld hl, $0218
   add hl, sp
   ld a, [hl+]
@@ -789,23 +787,23 @@ ReadGameMetadata.storeSGBFlag:
   ld a, [de]
   ld b, a
   sub $80
-  jr nz, ReadGameMetadata.checkCGBOnly
+  jr nz, .checkCGBOnly
 
   ld b, $01
-  jr ReadGameMetadata.storeCGBMode
+  jr .storeCGBMode
 
-ReadGameMetadata.checkCGBOnly:
+.checkCGBOnly:
   ld a, b
   sub $c0
-  jr nz, ReadGameMetadata.notCGB
+  jr nz, .notCGB
 
   ld b, $02
-  jr ReadGameMetadata.storeCGBMode
+  jr .storeCGBMode
 
-ReadGameMetadata.notCGB:
+.notCGB:
   ld b, $00
 
-ReadGameMetadata.storeCGBMode:
+.storeCGBMode:
   ld hl, $0218
   add hl, sp
   ld a, [hl+]
@@ -824,18 +822,18 @@ ReadGameMetadata.storeCGBMode:
   add hl, sp
   ld [hl], $01
 
-ReadGameMetadata.countROMMaskBits:
+.countROMMaskBits:
   ld a, b
   or a
-  jr z, ReadGameMetadata.storeROMBankCount
+  jr z, .storeROMBankCount
 
   ld hl, $0213
   add hl, sp
   sla [hl]
   srl b
-  jr ReadGameMetadata.countROMMaskBits
+  jr .countROMMaskBits
 
-ReadGameMetadata.storeROMBankCount:
+.storeROMBankCount:
   ld hl, $0223
   add hl, sp
   dec hl
@@ -878,18 +876,18 @@ ReadGameMetadata.storeROMBankCount:
   inc hl
   ld [hl], $01
 
-ReadGameMetadata.countRAMMaskBits:
+.countRAMMaskBits:
   ld a, b
   or a
-  jr z, ReadGameMetadata.storeRAMSectorCount
+  jr z, .storeRAMSectorCount
 
   ld hl, $0218
   add hl, sp
   sla [hl]
   srl b
-  jr ReadGameMetadata.countRAMMaskBits
+  jr .countRAMMaskBits
 
-ReadGameMetadata.storeRAMSectorCount:
+.storeRAMSectorCount:
   ld hl, $0223
   add hl, sp
   dec hl
@@ -919,7 +917,7 @@ ReadGameMetadata.storeRAMSectorCount:
   ld [bc], a
   ld e, $00
 
-ReadGameMetadata.done:
+.done:
   ld c, l
   ld b, h
   ld hl, $0224

@@ -1,5 +1,3 @@
-; 512-byte cartridge window transfers
-
 SECTION "512-byte cartridge window transfers", ROM0[$0965]
 
 CopyEndOfSRAMtoHL::;hl = address, c = count

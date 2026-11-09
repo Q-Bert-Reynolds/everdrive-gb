@@ -81,7 +81,7 @@ After the dialog returns, the caller waits for buttons to be released and draws
 | --- | --- |
 | `0`: Save State | Copy 164 sectors from snapshot `$3e40+i` to save RAM `$0040+i`, then resume |
 | `1`: Load State | Check for `SAVE` at save RAM sector `$0040`; if present, copy those sectors back into the snapshot and resume |
-| `2`: Back to menu | Set `CartSwitch` at `$01f2` to 1 and call `EntryPoint`; its switch path writes `$BD06=$10` and spins |
+| `2`: Back to menu | Set `OSReturnToMenuRequested` at `$01f2` to 1 and call `EntryPoint`; its switch path writes `$BD06=$10` and spins |
 | `$ff`: B/cancel | Resume the captured game without copying the save slot |
 
 `EnableStreaming` and `DisableStreaming` select the two backing stores through

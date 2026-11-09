@@ -1,9 +1,9 @@
 # Bank 0 source map
 
-`bank_000.asm` is now an include index. Each extracted fragment has a fixed
-`SECTION` at its original address, so file order does not change the ROM layout.
-`GBCOS.asm` still includes the index and the separately maintained
-`in_game_menu.asm`, `input.asm`, `colors.asm`, `sd.asm`, and `launcher.asm`.
+`src/GBCOS.asm` includes the modules directly, with game code under `src/game/`
+and storage code under `src/sd/`. Each extracted fragment has a fixed `SECTION`
+at its original address, so file order does not change the ROM layout. Local
+branches use `.label`; entry points shared across sections have global names.
 
 These names describe the stock v1.06 instructions and their callers. They do not
 validate Gearboy's interpretation of the cartridge hardware. The refactor is
@@ -12,6 +12,8 @@ checked against both pre-refactor binaries, including the stock MD5
 
 | File | Responsibilities |
 | --- | --- |
+| `os_state.asm` | Four resident OS flags and reserved bytes at `$01f0-$01ff` |
+| `os_api.asm` | 64 function-pointer slots at `$0200-$027f`; see [OS_INTERFACE.md](OS_INTERFACE.md) |
 | `snapshot.asm` | Writable snapshot workspace, VBlank capture, RAM/display/CGB restoration, handoff back to the game |
 | `cartridge_buffer.asm` | 512-byte cartridge-window copies, sector-pointer increment, IO shadow restoration, window clearing |
 | `display.asm` | VBlank wait, shadow-screen upload, DMG/CGB/SGB display initialization, palette/font upload |
@@ -20,19 +22,19 @@ checked against both pre-refactor binaries, including the stock MD5
 | `memory.asm` | General memory copy/fill and seeded 16-bit additive checksum |
 | `os_startup.asm` | Main OS loop, storage initialization, system directories, banked status callback |
 | `registry.asm` | Registry defaults/load/save/checksum, cartridge EEPROM settings, save-RAM marker, FAT timestamp getters |
-| `game_metadata.asm` | ROM header, mapper, battery/RTC, ROM/RAM masks and sizes, LSDJ special case |
-| `game_loader.asm` | Loading screen, save/RTC preparation, ROM loading, launch, random-game search |
+| `game/metadata.asm` | ROM header, mapper, battery/RTC, ROM/RAM masks and sizes, LSDJ special case |
+| `game/loader.asm` | Loading screen, save/RTC preparation, ROM loading, launch, random-game search |
 | `menu_text.asm` | Text, hex/decimal formatting, cursor placement, shadow-screen rectangle fills |
 | `random.asm` | Pseudo-random word generation from timing state, memory samples and a counter |
 | `strings.asm` | Equality/suffix matching, copy/append, hex/decimal string formatting |
-| `fat_volume.asm` | FAT32 mounting, directory/FAT sector caches, boot-record detection, little-endian word reader |
-| `fat_cluster.asm` | Cluster/sector conversion and FAT-chain traversal |
-| `fat_directory.asm` | Directory indexing, encoded entry IDs, short-name and long-name entry decoding |
-| `file_io.asm` | File opening, sector skipping, reads to RAM or cartridge windows, byte-count reads |
+| `sd/fat_volume.asm` | FAT32 mounting, directory/FAT sector caches, boot-record detection, little-endian word reader |
+| `sd/fat_cluster.asm` | Cluster/sector conversion and FAT-chain traversal |
+| `sd/fat_directory.asm` | Directory indexing, encoded entry IDs, short-name and long-name entry decoding |
+| `sd/file_io.asm` | File opening, sector skipping, reads to RAM or cartridge windows, byte-count reads |
 | `paths.asm` | Path joining and extension construction |
 
 The shared WRAM map and expanded directory-entry offsets are in `constants.asm`.
-The Makefile tracks every top-level `.asm` and `.inc` so editing any extracted
+The Makefile tracks `.asm` and `.inc` files recursively under `src/` so editing any extracted
 module rebuilds the ROM.
 
 ## Useful entry points

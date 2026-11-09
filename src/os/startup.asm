@@ -68,64 +68,64 @@ InitializeStorageAndSettings:
   ld a, e
   ld de, wOSSystemType
   ld [de], a
-  ld bc, $c004
-  ld hl, Writable01f1
+  ld bc, wOSFirstInitialization
+  ld hl, OSInitializationPending
   ld a, [hl]
   ld [bc], a
   ld [hl], $00
   ld a, [wOSSystemType]
   sub $03
-  jr nz, InitializeStorageAndSettings.initializeSD
+  jr nz, .initializeSD
 
   call SetCPUSpeedSlowIfSlow
 
-InitializeStorageAndSettings.initializeSD:
+.initializeSD:
   call SD_Init
   ld a, e
   or a
-  jp nz, InitializeStorageAndSettings.done
+  jp nz, .done
 
-InitializeStorageAndSettings.mountVolume:
+.mountVolume:
   call MountFAT32Volume
   ld a, e
   or a
-  jp nz, InitializeStorageAndSettings.done
+  jp nz, .done
 
-InitializeStorageAndSettings.initializeDirectories:
+.initializeDirectories:
   call EnsureSystemDirectories
   ld a, e
   or a
-  jp nz, InitializeStorageAndSettings.done
+  jp nz, .done
 
   call LoadRegistry
   ld a, e
 
-InitializeStorageAndSettings.checkRegistryStatus:
+.checkRegistryStatus:
   cp $35
-  jr z, InitializeStorageAndSettings.resetInvalidRegistry
+  jr z, .resetInvalidRegistry
 
   sub $f0
-  jr nz, InitializeStorageAndSettings.checkRegistryError
+  jr nz, .checkRegistryError
 
-InitializeStorageAndSettings.resetInvalidRegistry:
+.resetInvalidRegistry:
   call ResetRegistryDefaults
   ld a, e
   or a
-  jp nz, InitializeStorageAndSettings.done
+  jp nz, .done
 
   ld a, $35
   push af
   inc sp
   call InvokeBankedOSRoutine
   inc sp
-  jr InitializeStorageAndSettings.initializeBankedServices
+  jr .initializeBankedServices
 
-InitializeStorageAndSettings.checkRegistryError:
+.checkRegistryError:
   ld a, e
   or a
-  jp nz, InitializeStorageAndSettings.done
+  jp nz, .done
 
-InitializeStorageAndSettings.initializeBankedServices:
+.initializeBankedServices:
   call Call_000_05e8
   ld a, e
   ld de, _RAM
@@ -167,22 +167,22 @@ InitializeStorageAndSettings.initializeBankedServices:
   call Call_000_05ff
   inc sp
 
-InitializeStorageAndSettings.checkRTC:
+.checkRTC:
   ld b, $00
   ld de, $c002
   ld a, [de]
   ld c, a
   or a
-  jr z, InitializeStorageAndSettings.checkSaveRAM
+  jr z, .checkSaveRAM
 
   call Bank1Function5A35
   ld b, e
-  jr InitializeStorageAndSettings.handleSaveError
+  jr .handleSaveError
 
-InitializeStorageAndSettings.checkSaveRAM:
+.checkSaveRAM:
   ld a, [$c008]
   or a
-  jr z, InitializeStorageAndSettings.handleSaveError
+  jr z, .handleSaveError
 
   xor a
   push af
@@ -191,10 +191,10 @@ InitializeStorageAndSettings.checkSaveRAM:
   inc sp
   ld b, e
 
-InitializeStorageAndSettings.handleSaveError:
+.handleSaveError:
   ld a, b
   or a
-  jr z, InitializeStorageAndSettings.restorePendingSave
+  jr z, .backupPendingSave
 
   push bc
   ld hl, $0100
@@ -208,7 +208,7 @@ InitializeStorageAndSettings.handleSaveError:
   inc sp
   ld a, [$c008]
   or a
-  jr z, InitializeStorageAndSettings.restorePendingSave
+  jr z, .backupPendingSave
 
   ld a, $01
   push af
@@ -216,19 +216,19 @@ InitializeStorageAndSettings.handleSaveError:
   call CheckSaveRAMMarker
   inc sp
 
-InitializeStorageAndSettings.restorePendingSave:
-  ld hl, Writable01f0
+.backupPendingSave:
+  ld hl, OSSaveBackupPending
   ld a, [hl]
   or a
-  jr z, InitializeStorageAndSettings.checkSystemWordLimit
+  jr z, .checkSystemWordLimit
 
   ld [hl], $00
   call Bank1Function6334
   ld a, e
   or a
-  jr nz, InitializeStorageAndSettings.returnStatus
+  jr nz, .returnStatus
 
-InitializeStorageAndSettings.checkSystemWordLimit:
+.checkSystemWordLimit:
   ld de, $c00b
   ld a, [de]
   ld b, a
@@ -247,22 +247,19 @@ InitializeStorageAndSettings.checkSystemWordLimit:
   inc hl
   ld a, c
   sbc [hl]
-  jr nc, InitializeStorageAndSettings.success
+  jr nc, .success
 
   ld e, $52
-  jr InitializeStorageAndSettings.returnStatus
+  jr .returnStatus
 
-InitializeStorageAndSettings.success:
+.success:
   ld e, $00
 
-InitializeStorageAndSettings.done:
-InitializeStorageAndSettings.returnStatus:
+.done:
+.returnStatus:
   add sp, $07
   ret
 
-
-
-; System directory setup
 
 SECTION "System directory setup", ROM0[$0ee1]
 
@@ -285,13 +282,13 @@ EnsureSystemDirectories:
   pop bc
   ld a, e
   or a
-  jr z, EnsureSystemDirectories.ensureCheats
+  jr z, .ensureCheats
 
   ld a, e
   sub $f1
-  jp nz, EnsureSystemDirectories.done
+  jp nz, .done
 
-EnsureSystemDirectories.ensureCheats:
+.ensureCheats:
   ld e, c
   ld d, b
   push bc
@@ -303,13 +300,13 @@ EnsureSystemDirectories.ensureCheats:
   pop bc
   ld a, e
   or a
-  jr z, EnsureSystemDirectories.ensureSnapshots
+  jr z, .ensureSnapshots
 
   ld a, e
   sub $f1
-  jp nz, EnsureSystemDirectories.done
+  jp nz, .done
 
-EnsureSystemDirectories.ensureSnapshots:
+.ensureSnapshots:
   ld e, c
   ld d, b
   push bc
@@ -321,13 +318,13 @@ EnsureSystemDirectories.ensureSnapshots:
   pop bc
   ld a, e
   or a
-  jr z, EnsureSystemDirectories.locateSystemDirectory
+  jr z, .locateSystemDirectory
 
   ld a, e
   sub $f1
-  jp nz, EnsureSystemDirectories.done
+  jp nz, .done
 
-EnsureSystemDirectories.locateSystemDirectory:
+.locateSystemDirectory:
   ld e, c
   ld d, b
   push bc
@@ -344,7 +341,7 @@ EnsureSystemDirectories.locateSystemDirectory:
   pop bc
   ld a, e
   or a
-  jp nz, EnsureSystemDirectories.done
+  jp nz, .done
 
   ld hl, $00d4
   add hl, bc
@@ -384,7 +381,7 @@ EnsureSystemDirectories.locateSystemDirectory:
   ld [de], a
   ld e, $00
 
-EnsureSystemDirectories.done:
+.done:
   add sp, $7f
   add sp, $6a
   ret

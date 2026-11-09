@@ -7,12 +7,12 @@ NextRandomWord:
   ; then xor a sequence counter. Returns the generated word in DE.
   ld hl, wInputRandomState
   inc [hl]
-  jr nz, NextRandomWord.mixMemory
+  jr nz, .mixMemory
 
   inc hl
   inc [hl]
 
-NextRandomWord.mixMemory:
+.mixMemory:
   ld hl, wInputRandomState
   ld c, [hl]
   inc hl
@@ -109,12 +109,12 @@ NextRandomWord.mixMemory:
   ld [hl], a
   ld hl, wRandomSequence
   inc [hl]
-  jr nz, NextRandomWord.done
+  jr nz, .done
 
   inc hl
   inc [hl]
 
-NextRandomWord.done:
+.done:
   ld hl, wInputRandomState+$01
   dec hl
   ld e, [hl]

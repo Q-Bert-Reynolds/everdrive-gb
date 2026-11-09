@@ -1,6 +1,6 @@
 IMAGE_DEPS = gfx/font.1bpp gfx/font_original.1bpp
 # Track every included assembly unit, including the extracted bank 0 modules.
-SOURCES = $(wildcard *.asm *.inc)
+SOURCES = $(shell find src -type f \( -name '*.asm' -o -name '*.inc' \))
 BUILD_DIR := build
 
 # Feature toggles (1 = on, 0 = off), See options.inc.

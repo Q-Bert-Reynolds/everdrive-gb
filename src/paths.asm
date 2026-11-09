@@ -114,7 +114,7 @@ BuildPathWithExtension:
   ld [hl], e
   ld a, b
   sub $0b
-  jp nz, .keepOriginalName
+  jp nz, BuildPathKeepOriginalName
   inc hl
   ld a, [hl+]
   ld h, [hl]
@@ -163,4 +163,4 @@ BuildPathWithExtension:
   ld a, [hl+]
   ld e, [hl]
   ld hl, sp + $05
-  ; Falls through to .continueAt4000 in bank_001.asm.
+  ; Falls through to BuildPathWithExtensionContinuation in bank_001.asm.

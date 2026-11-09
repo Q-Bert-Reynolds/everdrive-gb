@@ -10,7 +10,7 @@ Bank2Section1::
   ld [hl], $00
   inc hl
   ld [hl], $02
-  ld de, $0256
+  ld de, OSAPI_GetDirectoryEntryIDs
   ld a, [de]
   ld b, a
   inc de
@@ -5247,7 +5247,7 @@ Bank2Section2::
   ld [hl], $00
   inc hl
   ld [hl], $02
-  ld de, $0254
+  ld de, OSAPI_GetDirectoryCluster
   ld a, [de]
   ld b, a
   inc de

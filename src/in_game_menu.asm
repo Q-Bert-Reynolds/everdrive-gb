@@ -408,7 +408,7 @@ ShowInGameMenu:
   sub INGAME_ACTION_EXIT
   jr nz, .resumeGame
 
-  ld hl, CartSwitch
+  ld hl, OSReturnToMenuRequested
   ld [hl], $01 ; EntryPoint sees this and requests an OS reboot via $BD06=$10
   call EntryPoint
 

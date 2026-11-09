@@ -49,7 +49,7 @@ SECTION "Display initialization (continues in colors.asm)", ROM0[$1e30]
 InitializeMenuDisplayState:
   add sp, -$0f
 
-InitializeMenuDisplayState.initializeVRAMPointers:
+.initializeVRAMPointers:
   ld hl, sp + $0d
   ld [hl], $00
   inc hl
@@ -61,19 +61,19 @@ InitializeMenuDisplayState.initializeVRAMPointers:
   ld hl, rLCDC
   ld [hl], $00
 
-InitializeMenuDisplayState.initializeTextMode:
+.initializeTextMode:
   ld hl, wMenuTextMode
   ld [hl], $00
   ld hl, wDisplaySystemType
 
-InitializeMenuDisplayState.detectCGB:
+.detectCGB:
   ld [hl], $01
   ld hl, rVBK
   ld [hl], $00
   ld de, rVBK
   ld a, [de]
   rrca
-  jr c, InitializeMenuDisplayState.configureAudio
+  jr c, .configureAudio
 
   ld hl, rVBK
   ld [hl], $01
@@ -81,30 +81,30 @@ InitializeMenuDisplayState.detectCGB:
   ld a, [de]
   and $01
   dec a
-  jr nz, InitializeMenuDisplayState.selectVRAMBankZero
+  jr nz, .selectVRAMBankZero
 
   ld hl, wDisplaySystemType
   ld [hl], $03
 
-InitializeMenuDisplayState.selectVRAMBankZero:
+.selectVRAMBankZero:
   ld hl, rVBK
   ld [hl], $00
 
-InitializeMenuDisplayState.configureAudio:
+.configureAudio:
   ld hl, sp+$11
   ld a, [hl]
   or a
-  jr z, InitializeMenuDisplayState.muteAudio
+  jr z, .muteAudio
 
   ld hl, rAUDENA
   ld [hl], $00;disable audio
-  jr InitializeMenuDisplayState.configureLCD
+  jr .configureLCD
 
-InitializeMenuDisplayState.muteAudio:
+.muteAudio:
   ld hl, rAUDTERM
   ld [hl], $00;no sound output
 
-InitializeMenuDisplayState.configureLCD:
+.configureLCD:
   ld hl, rSTAT
   ld [hl], $00
   ld l, (rSCY & $FF)
@@ -124,7 +124,7 @@ InitializeMenuDisplayState.configureLCD:
   ld hl, wDisplaySystemType
   ld a, [hl]
   sub $03
-  jp nz, InitializeMenuDisplayState.loadFont
+  jp nz, InitializeMenuFont
 
   ld hl, rVBK
   ld [hl], $01
@@ -151,7 +151,9 @@ InitializeMenuDisplayState.configureLCD:
 ; The palette/font portion continues from the first initialization fragment.
 SECTION "Display initialization continuation", ROM0[$1ed3]
 
-InitializeMenuDisplayState.loadNextPaletteColor::
+InitializeMenuPalette:
+  ; Continuation of InitializeMenuDisplayState, sharing its stack frame.
+.nextColor:
   ld hl, sp+$02
   ld a, [hl]
   and $03
@@ -188,21 +190,22 @@ InitializeMenuDisplayState.loadNextPaletteColor::
   ld [hl], c
   ld hl, sp+$02
   inc [hl]
-  jr nz, InitializeMenuDisplayState.checkPaletteCount
+  jr nz, .checkPaletteCount
 
   inc hl
   inc [hl]
 
-InitializeMenuDisplayState.checkPaletteCount:
+.checkPaletteCount:
   ld hl, sp+$02
   ld a, [hl]
   sub $20
   inc hl
   ld a, [hl]
   sbc $00
-  jp c, InitializeMenuDisplayState.loadNextPaletteColor
+  jp c, .nextColor
 
-InitializeMenuDisplayState.loadFont:
+InitializeMenuFont:
+  ; Also entered directly from InitializeMenuDisplayState on non-CGB systems.
   ld hl, sp+$00
   ld [hl], $00
   inc hl
@@ -212,7 +215,7 @@ InitializeMenuDisplayState.loadFont:
   inc hl
   ld [hl], $00
 
-InitializeMenuDisplayState.nextFontByte:
+.nextFontByte:
   pop de
   push de
   ld a, [de]
@@ -241,12 +244,12 @@ InitializeMenuDisplayState.nextFontByte:
   ld b, a
   ld hl, sp+$00
   inc [hl]
-  jr nz, InitializeMenuDisplayState.writeInvertedFontByte
+  jr nz, .writeInvertedFontByte
 
   inc hl
   inc [hl]
 
-InitializeMenuDisplayState.writeInvertedFontByte:
+.writeInvertedFontByte:
   ld hl, sp+$0b
   ld a, [hl+]
   ld h, [hl]
@@ -267,19 +270,19 @@ InitializeMenuDisplayState.writeInvertedFontByte:
   ld [hl], b
   ld hl, sp+$02
   inc [hl]
-  jr nz, InitializeMenuDisplayState.checkFontCount
+  jr nz, .checkFontCount
 
   inc hl
   inc [hl]
 
-InitializeMenuDisplayState.checkFontCount:
+.checkFontCount:
   ld hl, sp+$02
   ld a, [hl]
   sub $00
   inc hl
   ld a, [hl]
   sbc $03
-  jp c, InitializeMenuDisplayState.nextFontByte
+  jp c, .nextFontByte
 
   call ClearShadowScreen
   call Bank1Function6AF2
@@ -289,7 +292,7 @@ InitializeMenuDisplayState.checkFontCount:
   ld hl, wDisplaySystemType
   ld a, [hl]
   dec a
-  jr nz, InitializeMenuDisplayState.done
+  jr nz, .done
 
   ld hl, sp+$04
   ld e, l
@@ -307,12 +310,12 @@ InitializeMenuDisplayState.checkFontCount:
   add sp, $03
   ld a, e
   or a
-  jr z, InitializeMenuDisplayState.done
+  jr z, .done
 
   ld hl, wDisplaySystemType
   ld [hl], $02
 
-InitializeMenuDisplayState.done:
+.done:
   add sp, $0f
   ret
 

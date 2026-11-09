@@ -6771,7 +6771,7 @@ Bank003Addr6000:
     ld hl, sp+$00
     ld [hl+], a
     ld [hl], e
-    ld de, $0234
+    ld de, OSAPI_ClearShadowScreen
     ld a, [de]
     ld b, a
     inc de

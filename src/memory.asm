@@ -10,17 +10,17 @@ CopyMemory:
   pop de
   add sp, -$08
 
-CopyMemory.nextByte:
+.nextByte:
   ld a, [hl+]
   ld [bc], a
   inc bc
   dec de
   ld a, $00
   cp e
-  jr nz, CopyMemory.nextByte
+  jr nz, .nextByte
 
   cp d
-  jr nz, CopyMemory.nextByte
+  jr nz, .nextByte
 
   ret
 
@@ -66,7 +66,7 @@ SumBytes16:
   inc hl
   ld b, [hl]
 
-SumBytes16.nextByte:
+.nextByte:
   ld hl, sp + $02
   ld [hl], c
   inc hl
@@ -74,19 +74,19 @@ SumBytes16.nextByte:
   dec bc
   ld a, [hl-]
   or [hl]
-  jr z, SumBytes16.done
+  jr z, .done
   pop de
   push de
   ld a, [de]
   dec hl
   dec hl
   inc [hl]
-  jr nz, SumBytes16.addByte
+  jr nz, .addByte
 
   inc hl
   inc [hl]
 
-SumBytes16.addByte:
+.addByte:
   ld d, a
   ld e, $00
   ld hl, sp + $02
@@ -107,10 +107,10 @@ SumBytes16.addByte:
   ld hl, sp+$0a
   ld [hl+], a
   ld [hl], d
-  jp SumBytes16.nextByte
+  jp .nextByte
 
 
-SumBytes16.done:
+.done:
   ld hl, sp+$0b
   dec hl
   ld e, [hl]
