@@ -4,6 +4,8 @@ Initial disassembly was done with [mgbdis v1.5](https://github.com/mattcurrie/mg
 
 See [BANK_0.md](notes/BANK_0.md) for the bank 0 module map and named entry points,
 and [OS_INTERFACE.md](notes/OS_INTERFACE.md) for the runtime flags and function table.
+See [MEMORY_LAYOUT.md](notes/MEMORY_LAYOUT.md) for the fixed OS region, banked
+8 KiB pages, and the rough bank 1-4 module map.
 
 To change colors, edit the RGB values (0 to 31) in [colors.asm](src/colors.asm).
 

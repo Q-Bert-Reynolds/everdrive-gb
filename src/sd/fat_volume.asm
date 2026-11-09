@@ -68,7 +68,7 @@ MountFAT32Volume:
   ld hl, wPartitionStartSector
   push hl
   push de
-  call Bank1Function4323
+  call ReadLittleEndianDWord
   add sp, $04
   ld hl, wPartitionStartSector+$02
   ld a, [hl+]
@@ -112,7 +112,7 @@ MountFAT32Volume:
   ld hl, wFATSectorCount
   push hl
   push de
-  call Bank1Function4323
+  call ReadLittleEndianDWord
   add sp, $04
   push af
   ld hl, wFATSectorCount

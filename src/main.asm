@@ -85,8 +85,8 @@ SetInterrupts::;probably not the only thing this does
   DB $ea
   DW rIE;ld [rIE], a (3-byte form) to disable all interrupts
   ld [sSPIControl], a; SPI Control: Assert CS (0), fast speed (0), auto-read disabled (0)
-  ld a, $04
-  ld [sCurrentBank], a; Select OS SRAM Bank 4
+  ld a, OS_PAGE_FILE_BROWSER
+  ld [sCurrentBank], a; Select OS page 4
   ret
 
 HandleReturnToMenuRequest:

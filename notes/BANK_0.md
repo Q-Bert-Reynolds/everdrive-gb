@@ -12,15 +12,15 @@ checked against both pre-refactor binaries, including the stock MD5
 
 | File | Responsibilities |
 | --- | --- |
-| `os_state.asm` | Four resident OS flags and reserved bytes at `$01f0-$01ff` |
-| `os_api.asm` | 64 function-pointer slots at `$0200-$027f`; see [OS_INTERFACE.md](OS_INTERFACE.md) |
+| `os/state.asm` | Four resident OS flags and reserved bytes at `$01f0-$01ff` |
+| `os/api.asm` | 64 function-pointer slots at `$0200-$027f`; see [OS_INTERFACE.md](OS_INTERFACE.md) |
 | `snapshot.asm` | Writable snapshot workspace, VBlank capture, RAM/display/CGB restoration, handoff back to the game |
 | `cartridge_buffer.asm` | 512-byte cartridge-window copies, sector-pointer increment, IO shadow restoration, window clearing |
 | `display.asm` | VBlank wait, shadow-screen upload, DMG/CGB/SGB display initialization, palette/font upload |
 | `colors.asm` | Customizable UI palette data |
 | `input.asm` | Button polling, A/B swap flag, repeat handling, raw joypad sampling |
 | `memory.asm` | General memory copy/fill and seeded 16-bit additive checksum |
-| `os_startup.asm` | Main OS loop, storage initialization, system directories, banked status callback |
+| `os/startup.asm` | Main OS loop, storage initialization, system directories, banked status callback |
 | `registry.asm` | Registry defaults/load/save/checksum, cartridge EEPROM settings, save-RAM marker, FAT timestamp getters |
 | `game/metadata.asm` | ROM header, mapper, battery/RTC, ROM/RAM masks and sizes, LSDJ special case |
 | `game/loader.asm` | Loading screen, save/RTC preparation, ROM loading, launch, random-game search |

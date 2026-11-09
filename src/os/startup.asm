@@ -28,10 +28,10 @@ InitializeOS::;$0a43
 .mainLoop:
     ld hl, $0000
     push hl
-    ld a, $04
+    ld a, OS_PAGE_FILE_BROWSER
     push af
     inc sp
-    call OS_CallFarSRAM
+    call OS_CallPage
     add sp, $03
     ld d, e
     push de
@@ -139,10 +139,10 @@ InitializeStorageAndSettings:
   ld e, l
   ld d, h
   push de
-  ld a, $06
+  ld a, OS_PAGE_SERVICES
   push af
   inc sp
-  call OS_CallFarSRAM
+  call OS_CallPage
   add sp, $03
   ld b, $00
   ld a, [$c007]
@@ -175,7 +175,7 @@ InitializeStorageAndSettings:
   or a
   jr z, .checkSaveRAM
 
-  call Bank1Function5A35
+  call CheckAndInitializeRTC
   ld b, e
   jr .handleSaveError
 
@@ -223,7 +223,7 @@ InitializeStorageAndSettings:
   jr z, .checkSystemWordLimit
 
   ld [hl], $00
-  call Bank1Function6334
+  call BackupGameSaveFiles
   ld a, e
   or a
   jr nz, .returnStatus
@@ -277,7 +277,7 @@ EnsureSystemDirectories:
   ld hl, GBCSysSaveText
   push hl
   push de
-  call Bank1Function55CB
+  call CreateDirectory
   add sp, $04
   pop bc
   ld a, e
@@ -295,7 +295,7 @@ EnsureSystemDirectories:
   ld hl, GBSysCheatsText
   push hl
   push de
-  call Bank1Function55CB
+  call CreateDirectory
   add sp, $04
   pop bc
   ld a, e
@@ -313,7 +313,7 @@ EnsureSystemDirectories:
   ld hl, GBSysSnapText
   push hl
   push de
-  call Bank1Function55CB
+  call CreateDirectory
   add sp, $04
   pop bc
   ld a, e
@@ -336,7 +336,7 @@ EnsureSystemDirectories:
   push de
   ld hl, GBSysText
   push hl
-  call Bank1Function4106
+  call ResolvePathEntry
   add sp, $07
   pop bc
   ld a, e
@@ -432,10 +432,10 @@ InvokeBankedOSRoutine:
   inc hl
   ld d, [hl]
   push de
-  ld a, $06
+  ld a, OS_PAGE_SERVICES
   push af
   inc sp
-  call OS_CallFarSRAM
+  call OS_CallPage
   add sp, $03
   add sp, $07
   ret

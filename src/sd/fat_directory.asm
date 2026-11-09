@@ -1321,7 +1321,7 @@ ReadDirectoryEntry:
   ld h, [hl]
   ld l, a
   push hl
-  call Bank1Function4323
+  call ReadLittleEndianDWord
   add sp, $04
   ld e, $00
 

@@ -1,7 +1,7 @@
 # OS state and function interface
 
 The former `writable.asm` combined two different structures. They are now in
-`src/os_state.asm` and `src/os_api.asm`. The names and annotations preserve the
+`src/os/state.asm` and `src/os/api.asm`. The names and annotations preserve the
 stock v1.06 bytes.
 
 ## Runtime state: $01f0-$01ff
@@ -12,7 +12,7 @@ OS and launched game exchange control.
 
 | Address | Label / initial value | Observed use |
 | --- | --- | --- |
-| `$01f0` | `OSSaveBackupPending` / 0 | Set by `LaunchPreparedGame` before initializing the selected game's save RAM when `$c007` is zero. On OS entry, storage initialization clears it and calls the save backup routine (`Bank1Function6334`). That routine writes save RAM and any valid snapshot to their files. |
+| `$01f0` | `OSSaveBackupPending` / 0 | Set by `LaunchPreparedGame` before initializing the selected game's save RAM when `$c007` is zero. On OS entry, storage initialization clears it and calls the save backup routine (`BackupGameSaveFiles`). That routine writes save RAM and any valid snapshot to their files. |
 | `$01f1` | `OSInitializationPending` / 1 | Copied into WRAM `$c004` and cleared by `InitializeStorageAndSettings`. It distinguishes the first storage initialization of the resident OS image from later ones. The meaning of its banked consumers is not fully traced yet. |
 | `$01f2` | `OSReturnToMenuRequested` / 0 | Set by the in-game Back to menu action. `EntryPoint` consumes it and writes `$10` to `$BD06` to request the cartridge's OS reboot. |
 | `$01f3` | `SnapshotUse32KiBCartRAM` / 0 | A boolean derived from `wGameRAMMask`, not a page count. `GetSnapshotCartRAMChunkCount` returns C=1 or C=4, selecting an 8 KiB or 32 KiB save-RAM portion of the snapshot. |
@@ -23,7 +23,7 @@ that they survive power loss.
 
 ### Why `Writable01f5` looked referenced
 
-In `Call_001_6402`, the apparent reference was:
+In `BackupCartridgeRegionToFile`, the apparent reference was:
 
 ```asm
 ld hl, Writable01f5  ; numeric value $01f5
@@ -43,7 +43,7 @@ The remaining 128 bytes are 64 little-endian function pointers. For example:
 ```asm
 OSAPI_PrepareGame:          DW PrepareGame             ; $0200 -> $1784
 OSAPI_ClearShadowScreen:    DW ClearShadowScreen       ; $0234 -> $217a
-OSAPI_GetDirectoryEntryIDs: DW Bank1Function58B6        ; $0256 -> $58c4
+OSAPI_GetDirectoryEntryIDs: DW GetDirectoryEntryIDs        ; $0256 -> $58c4
 ```
 
 These are addresses, not executable jump stubs. Banked OS modules load a pointer
@@ -63,10 +63,9 @@ and access slots by offset.
 | `$0262-$026e` | Dialogs, status-text buffer operations, dialog row override |
 | `$0270-$027e` | I2C byte transfers and additional bank 1 helpers awaiting detailed analysis |
 
-`src/os_api.asm` now names every slot and uses `DW` with an existing function
-label where one is available. A few unnamed bank 1 targets remain numeric, and
-the last six slots retain address-based names rather than guessed semantics.
-Those are explicitly deferred to the bank 1 pass. The table ends exactly at
+`src/os/api.asm` now names every slot and uses `DW` with a named function
+label for all 64 entries, including the I2C/RTC helpers identified in the rough
+bank 1 pass. The table ends exactly at
 `$0280`, where `EntryPoint` begins; assembly assertions check its size.
 
 The API also explains why code at `$4000-$7fff` appears in these pointers: those

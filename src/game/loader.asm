@@ -165,7 +165,7 @@ PrepareGame:
   jr z, .handlePreviousRTC
 
   push bc
-  call Bank1Function6334
+  call BackupGameSaveFiles
   pop bc
   ld a, e
   or a
@@ -189,7 +189,7 @@ PrepareGame:
 
 .handlePreviousRTC:
   push bc
-  call Bank1Function66C3
+  call BackupGameRTCFile
   pop bc
   ld a, e
   or a
@@ -335,13 +335,13 @@ PrepareGame:
   or a
   jr z, .handleGameRTC
 
-  call Bank1Function6471
+  call RestoreGameSaveFiles
   ld a, e
   or a
   jp nz, .done
 
 .handleGameRTC:
-  call Bank1Function675E
+  call RestoreGameRTCFile
   ld a, e
   or a
   jp nz, .done
@@ -376,10 +376,10 @@ PrepareGame:
   ld a, $02
   ld [bc], a
   push bc
-  ld a, $08
+  ld a, OS_PAGE_RECENT_GAMES
   push af
   inc sp
-  call OS_CallFarSRAM
+  call OS_CallPage
   add sp, $03
 
 .success:
@@ -532,7 +532,7 @@ LaunchPreparedGame:
 
   ld hl, OSSaveBackupPending
   ld [hl], $01
-  call Bank1Function6471
+  call RestoreGameSaveFiles
   ld a, e
   or a
   jp nz, .done
@@ -551,10 +551,10 @@ LaunchPreparedGame:
   ld e, l
   ld d, h
   push de
-  ld a, $07
+  ld a, OS_PAGE_CHEATS
   push af
   inc sp
-  call OS_CallFarSRAM
+  call OS_CallPage
   add sp, $03
   ld a, e
   or a
@@ -610,7 +610,7 @@ LaunchPreparedGame:
   ld [hl], $01
 
 .finalizeDisplay:
-  call Bank1Function67C1
+  call RefreshGameRTCBeforeLaunch
   call ClearShadowScreen
   call DrawToScreen0
   call WaitVBL
@@ -671,7 +671,7 @@ FindRandomGame:
   add sp, -$80
   add sp, -$80
   add sp, -$16
-  call Bank1Function58AA
+  call GetDirectoryCluster
   ld b, l
   ld c, h
   ld hl, sp + $12

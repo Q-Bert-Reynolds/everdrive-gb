@@ -1,5 +1,19 @@
 DEF EDGB_UNLOCK_KEY   EQU $a5 
 
+; OS execution window and selectors used by OS_CallPage ($BD08).
+; These 8 KiB pages differ from RGBDS/mgbdis's 16 KiB image banks.
+DEF OS_WINDOW_BASE EQU $a000
+DEF OS_PAGE_SIZE EQU $2000
+DEF OS_PAGE_FILE_BROWSER EQU 4
+DEF OS_PAGE_MAIN_MENU EQU 5
+DEF OS_PAGE_SERVICES EQU 6
+DEF OS_PAGE_CHEATS EQU 7
+DEF OS_PAGE_RECENT_GAMES EQU 8
+DEF OS_PAGE_DIAGNOSTICS EQU 9
+; Current image-bank labels are not relocated with LOAD blocks yet.
+DEF OS_WINDOW_FROM_4000 EQU $6000 ; runtime address = lower-half label + this
+DEF OS_WINDOW_FROM_6000 EQU $4000 ; runtime address = upper-half label + this
+
 ;SRAM
 DEF sSPIData           EQU $bd00 ; SPI byte transfer register
 DEF sSPIControl        EQU $bd01 ; SPI control/CS clock mode register

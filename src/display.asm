@@ -285,7 +285,7 @@ InitializeMenuFont:
   jp c, .nextFontByte
 
   call ClearShadowScreen
-  call Bank1Function6AF2
+  call ResetStatusText
   call DrawToScreen0
   ld hl, rLCDC
   ld [hl], $91
@@ -303,10 +303,10 @@ InitializeMenuFont:
   ld e, l
   ld d, h
   push de
-  ld a, $06
+  ld a, OS_PAGE_SERVICES
   push af
   inc sp
-  call OS_CallFarSRAM
+  call OS_CallPage
   add sp, $03
   ld a, e
   or a

@@ -40,23 +40,25 @@ Call_000_0488:
   ret
 
 
-; Far call to function in specified OS SRAM bank ($A000-$BFFF)
-; Arguments on stack: bank number (1 byte), function pointer (2 bytes)
-OS_CallFarSRAM::
+; Call an 8 KiB OS page through $A000-$BFFF, selected by $BD08.
+; This proves the address mapping, not the physical RAM technology.
+; Stack arguments: page selector (byte), descriptor pointer (word).
+; The descriptor is passed to the selected page entry at $A000.
+OS_CallPage::
   ld hl, sp+$02
-  ld a, [sCurrentBank]        ; Current SRAM bank
+  ld a, [sCurrentBank]        ; Current OS page
   push af              ; Save current bank
   ld a, [hl]           ; Target bank
-  ld [sCurrentBank], a        ; Switch to target bank
+  ld [sCurrentBank], a        ; Switch to target page
   ld hl, sp+$05
   ld e, [hl]
   inc hl
   ld d, [hl]
   push de
-  call _SRAM           ; Call function in SRAM ($A000)
+  call _SRAM           ; Call the selected page entry ($A000)
   pop af
   pop af
-  ld [sCurrentBank], a        ; Restore previous SRAM bank
+  ld [sCurrentBank], a        ; Restore previous OS page
   ret
 
 

@@ -78,7 +78,7 @@ ReadCartEEPROMSettings:
   push de
   ld hl, _VRAM
   push hl
-  call Bank1Function58BA
+  call ReadI2CBytes
   add sp, $06
   ret
 
@@ -94,7 +94,7 @@ WriteCartEEPROMSettings:
   push de
   ld hl, _VRAM
   push hl
-  call Bank1Function5941
+  call WriteI2CBytes
   add sp, $06
   ret
 
@@ -238,7 +238,7 @@ SaveRegistry:
   push hl
   push bc
   push de
-  call Bank1Function4067
+  call OpenFileByPath
   add sp, $06
   ld a, e
   or a
@@ -251,7 +251,7 @@ SaveRegistry:
   ld hl, $0001
   push hl
   push de
-  call Bank1Function49C2
+  call WriteFileSectors
   add sp, $05
   ld a, e
   or a

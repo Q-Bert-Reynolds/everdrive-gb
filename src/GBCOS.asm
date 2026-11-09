@@ -16,7 +16,7 @@ INCLUDE "src/input.asm"
 INCLUDE "src/display.asm"
 INCLUDE "src/memory.asm"
 INCLUDE "src/strings.asm"
-INCLUDE "src/paths.asm"
+INCLUDE "src/paths.asm";spills over into bank 1
 INCLUDE "src/random.asm"
 INCLUDE "src/i2c.asm"
 
@@ -42,7 +42,30 @@ INCLUDE "src/os/state.asm"
 INCLUDE "src/os/api.asm"
 
 
-INCLUDE "src/bank_001.asm"
-INCLUDE "src/bank_002.asm"
-INCLUDE "src/bank_003.asm"
-INCLUDE "src/bank_004.asm"
+; Image bank 1 is the upper half of the fixed 32 KiB OS region.
+; It is not a switchable $4000 ROM bank while the OS is running.
+INCLUDE "src/sd/file_ops.asm"
+INCLUDE "src/os/rtc.asm"
+INCLUDE "src/game/saves.asm"
+INCLUDE "src/os/dialog.asm"
+INCLUDE "src/os/status_text.asm"
+INCLUDE "src/compiler_runtime.asm"
+INCLUDE "src/font.asm"
+
+
+; Image bank 2: two independent 8 KiB OS pages (4 and 5).
+; See notes/MEMORY_LAYOUT.md; both pages execute through $a000-$bfff.
+INCLUDE "src/os/browser.asm"
+INCLUDE "src/os/main_menu.asm"
+
+
+; Image bank 3: two independent 8 KiB OS pages (6 and 7).
+; See notes/MEMORY_LAYOUT.md; both pages execute through $a000-$bfff.
+INCLUDE "src/os/services.asm"
+INCLUDE "src/os/cheats.asm"
+
+
+; Image bank 4: two independent 8 KiB OS pages (8 and 9).
+; See notes/MEMORY_LAYOUT.md; both pages execute through $a000-$bfff.
+INCLUDE "src/os/recent_games.asm"
+INCLUDE "src/os/diagnostics.asm"

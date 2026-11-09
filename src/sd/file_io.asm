@@ -27,7 +27,7 @@ ReadFileBytes:
   ld h, [hl]
   ld l, a
   push hl
-  call Bank1Function4067
+  call OpenFileByPath
   add sp, $06
   pop bc
   ld a, e
@@ -298,7 +298,7 @@ OpenFileForSectorIO:
   push hl
   push bc
   push hl
-  call Bank1Function46DF
+  call ExtendFileAllocation
   add sp, $04
   ld a, e
   or a

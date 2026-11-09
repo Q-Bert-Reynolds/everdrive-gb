@@ -43,7 +43,7 @@ ROM0 bank #0:
 	         $020c = OSAPI_GetOSGlobalsPointer
 	         $020e = OSAPI_GetRegistryPointer
 	         $0210 = OSAPI_FindRandomGame
-	         $0212 = OSAPI_CallFarSRAM
+	         $0212 = OSAPI_CallPage
 	         $0214 = OSAPI_SetSectorPointer
 	         $0216 = OSAPI_SelectSnapshotBuffer
 	         $0218 = OSAPI_SelectSaveRAM
@@ -92,12 +92,12 @@ ROM0 bank #0:
 	         $026e = OSAPI_SetDialogRow
 	         $0270 = OSAPI_ReadI2CBytes
 	         $0272 = OSAPI_WriteI2CBytes
-	         $0274 = OSAPI_Bank1Entry5C74
-	         $0276 = OSAPI_Bank1Entry5B2C
-	         $0278 = OSAPI_Bank1Entry5ACD
-	         $027a = OSAPI_Bank1Entry5B09
-	         $027c = OSAPI_Bank1Entry5B8D
-	         $027e = OSAPI_Bank1Entry5C17
+	         $0274 = OSAPI_LatchAndReadGameRTC
+	         $0276 = OSAPI_WriteMapperRTCRegisters
+	         $0278 = OSAPI_ReadRTCClockRegisters
+	         $027a = OSAPI_WriteRTCClockRegisters
+	         $027c = OSAPI_ReadSavedGameRTCShadow
+	         $027e = OSAPI_ProgramGameRTC
 	         $0280 = OSFunctionTableEnd
 	SECTION: $0280-$02c7 ($0048 bytes) ["Bank 0 Code, A"]
 	         $0280 = EntryPoint
@@ -148,7 +148,7 @@ ROM0 bank #0:
 	         $047e = Jump_000_047e
 	         $0481 = Call_000_0481
 	         $0488 = Call_000_0488
-	         $048f = OS_CallFarSRAM
+	         $048f = OS_CallPage
 	         $04a8 = DisableStreaming
 	         $04b1 = EnableStreaming
 	         $04ba = Cart_SetSectorPointerFromStack
@@ -764,13 +764,13 @@ ROMX bank #1:
 	         $4000 = BuildPathWithExtensionContinuation
 	         $401d = BuildPathKeepOriginalName
 	         $4046 = Bank1Data4030
-	SECTION: $407e-$73e0 ($3363 bytes) ["ROM Bank 1 Code"]
-	         $407e = Bank1Function4067
+	SECTION: $407e-$58c7 ($184a bytes) ["ROM Bank 1 Code"]
+	         $407e = OpenFileByPath
 	         $40ae = jr_001_4097
 	         $40c9 = jr_001_40b2
 	         $4109 = Jump_001_40f2
 	         $411a = Jump_001_4103
-	         $411d = Bank1Function4106
+	         $411d = ResolvePathEntry
 	         $4169 = Jump_001_4154
 	         $4179 = jr_001_4164
 	         $417d = jr_001_4168
@@ -796,7 +796,7 @@ ROMX bank #1:
 	         $4333 = jr_001_431e
 	         $4335 = Jump_001_4320
 	         $4335 = jr_001_4320
-	         $4338 = Bank1Function4323
+	         $4338 = ReadLittleEndianDWord
 	         $436c = Call_001_4354
 	         $4383 = Call_001_436b
 	         $43a5 = jr_001_438d
@@ -820,7 +820,7 @@ ROMX bank #1:
 	         $467e = jr_001_466a
 	         $46af = jr_001_469b
 	         $46ef = Jump_001_46dc
-	         $46f2 = Bank1Function46DF
+	         $46f2 = ExtendFileAllocation
 	         $470a = jr_001_46f7
 	         $475b = jr_001_4749
 	         $4792 = jr_001_4780
@@ -842,7 +842,7 @@ ROMX bank #1:
 	         $4987 = jr_001_4977
 	         $499f = jr_001_498f
 	         $49cf = Jump_001_49bf
-	         $49d2 = Bank1Function49C2
+	         $49d2 = WriteFileSectors
 	         $49e4 = jr_001_49d4
 	         $49fa = jr_001_49ea
 	         $4a17 = jr_001_4a07
@@ -926,7 +926,7 @@ ROMX bank #1:
 	         $5585 = jr_001_5577
 	         $559a = jr_001_558c
 	         $55d6 = Jump_001_55c8
-	         $55d9 = Bank1Function55CB
+	         $55d9 = CreateDirectory
 	         $5602 = jr_001_55f4
 	         $5623 = jr_001_5615
 	         $566c = jr_001_565e
@@ -939,6 +939,7 @@ ROMX bank #1:
 	         $5745 = jr_001_5737
 	         $575f = jr_001_5751
 	         $57a6 = jr_001_5798
+	         $57a9 = RemoveDirectoryEntryID
 	         $57b2 = Jump_001_57a4
 	         $5801 = jr_001_57f3
 	         $580c = Jump_001_57fe
@@ -948,16 +949,19 @@ ROMX bank #1:
 	         $5846 = jr_001_5838
 	         $584c = jr_001_583e
 	         $58a1 = Jump_001_5893
-	         $58b8 = Bank1Function58AA
-	         $58c4 = Bank1Function58B6
-	         $58c8 = Bank1Function58BA
+	         $58a4 = GetDirectoryEntryCount
+	         $58ac = GetParentDirectoryCluster
+	         $58b8 = GetDirectoryCluster
+	         $58c4 = GetDirectoryEntryIDs
+	SECTION: $58c8-$633f ($0a78 bytes) ["Resident I2C and RTC helpers"]
+	         $58c8 = ReadI2CBytes
 	         $58d2 = jr_001_58c4
 	         $58d4 = jr_001_58c6
 	         $58e8 = jr_001_58da
 	         $5901 = jr_001_58f3
 	         $5915 = jr_001_5907
 	         $592a = jr_001_591c
-	         $594f = Bank1Function5941
+	         $594f = WriteI2CBytes
 	         $5963 = jr_001_5955
 	         $5965 = jr_001_5957
 	         $5971 = jr_001_5963
@@ -973,17 +977,18 @@ ROMX bank #1:
 	         $59f6 = jr_001_59e8
 	         $5a3b = Jump_001_5a2d
 	         $5a40 = Jump_001_5a32
-	         $5a43 = Bank1Function5A35
+	         $5a43 = CheckAndInitializeRTC
 	         $5abc = Jump_001_5aae
 	         $5abe = jr_001_5ab0
 	         $5ac1 = Bank1Address5AB3
-	         $5acd = Call_001_5abf
-	         $5b09 = Call_001_5afb
-	         $5b2c = Call_001_5b1e
+	         $5acd = ReadRTCClockRegisters
+	         $5b09 = WriteRTCClockRegisters
+	         $5b2c = WriteMapperRTCRegisters
 	         $5b54 = Jump_001_5b46
-	         $5b8d = Call_001_5b7f
-	         $5c17 = Call_001_5c09
-	         $5c34 = Call_001_5c26
+	         $5b8d = ReadSavedGameRTCShadow
+	         $5c17 = ProgramGameRTC
+	         $5c34 = ClearGameRTC
+	         $5c74 = LatchAndReadGameRTC
 	         $5c88 = Call_001_5c7a
 	         $5cad = jr_001_5c9f
 	         $5caf = jr_001_5ca1
@@ -1010,7 +1015,8 @@ ROMX bank #1:
 	         $62e7 = jr_001_62db
 	         $6315 = Jump_001_6309
 	         $6326 = jr_001_631a
-	         $6340 = Bank1Function6334
+	SECTION: $6340-$67f8 ($04b9 bytes) ["Resident game save, snapshot and RTC file helpers"]
+	         $6340 = BackupGameSaveFiles
 	         $6356 = jr_001_634a
 	         $6372 = jr_001_6366
 	         $63a0 = jr_001_6390
@@ -1023,9 +1029,9 @@ ROMX bank #1:
 	         $63f9 = Bank1Address63ED
 	         $63fd = Bank1Address63F1
 	         $640a = Bank1Address63FE
-	         $640e = Call_001_6402
+	         $640e = BackupCartridgeRegionToFile
 	         $6474 = jr_001_6468
-	         $647d = Bank1Function6471
+	         $647d = RestoreGameSaveFiles
 	         $64aa = jr_001_649e
 	         $64c4 = jr_001_64b8
 	         $64de = jr_001_64d2
@@ -1036,16 +1042,16 @@ ROMX bank #1:
 	         $64f7 = Bank1Address64EB
 	         $64fe = Bank1Address64F2
 	         $6504 = Bank1Address64F8
-	         $6508 = Call_001_64fc
+	         $6508 = RestoreFileToCartridgeRegion
 	         $655b = jr_001_654f
 	         $6572 = jr_001_6566
-	         $657b = Call_001_656f
+	         $657b = WriteCartridgeBufferToFile
 	         $65c7 = jr_001_65bb
 	         $65df = jr_001_65d3
-	         $65e2 = Call_001_65d6
+	         $65e2 = ReadFileToCartridgeBuffer
 	         $6632 = jr_001_6626
 	         $664a = jr_001_663e
-	         $664d = Call_001_6641
+	         $664d = BytesToSectors32
 	         $665a = jr_001_664e
 	         $6670 = jr_001_6664
 	         $6671 = jr_001_6665
@@ -1054,19 +1060,20 @@ ROMX bank #1:
 	         $66be = Bank1Address66B2
 	         $66c5 = Bank1Address66B9
 	         $66cb = Bank1Address66BF
-	         $66cf = Bank1Function66C3
+	         $66cf = BackupGameRTCFile
 	         $66e0 = jr_001_66d4
 	         $66e5 = jr_001_66d9
 	         $6708 = jr_001_66fc
 	         $6760 = Jump_001_6754
 	         $6760 = jr_001_6754
-	         $676a = Bank1Function675E
+	         $676a = RestoreGameRTCFile
 	         $6788 = jr_001_677a
 	         $678d = jr_001_677f
 	         $67a5 = jr_001_6797
 	         $67ca = Jump_001_67b7
-	         $67d4 = Bank1Function67C1
+	         $67d4 = RefreshGameRTCBeforeLaunch
 	         $67f6 = jr_001_67e3
+	SECTION: $67f9-$6b04 ($030c bytes) ["Resident menu dialogs"]
 	         $67f9 = ShowMenuDialog
 	         $680e = ShowMenuDialog.scanDescriptor
 	         $6812 = ShowMenuDialog.nextString
@@ -1103,10 +1110,16 @@ ROMX bank #1:
 	         $6a2b = DrawMenuDialogFrame.halveHorizontalMargin
 	         $6a59 = DrawMenuDialogFrame.halveVerticalMargin
 	         $6a6d = DrawMenuDialogFrame.drawBorder
-	         $6b05 = Bank1Function6AF2
+	         $6afb = SetDialogRow
+	SECTION: $6b05-$6c59 ($0155 bytes) ["Resident status-text buffer"]
+	         $6b05 = ResetStatusText
+	         $6b22 = AppendStatusText
 	         $6b3b = jr_001_6b28
 	         $6bee = Jump_001_6bdb
-	         $6c28 = Call_001_6c15
+	         $6bf1 = AppendStatusDecimal32
+	         $6c28 = AppendStatusHexByte
+	         $6c45 = AppendStatusHexWord
+	SECTION: $6c5a-$73e0 ($0787 bytes) ["Resident compiler runtime and arithmetic helpers"]
 	         $6c5a = Call_001_6c47
 	         $6c60 = Bank1Function6C4D
 	         $6c66 = Bank1Function6C53
@@ -1190,7 +1203,7 @@ ROMX bank #1:
 
 ROMX bank #2:
 	SECTION: $4000-$595c ($195d bytes) ["ROM Bank $002"]
-	         $4000 = Bank2Section1
+	         $4000 = BrowserEntry
 	         $4079 = jr_002_4079
 	         $4085 = jr_002_4085
 	         $410a = jr_002_410a
@@ -1218,9 +1231,10 @@ ROMX bank #2:
 	         $47e3 = jr_002_47d2
 	         $4827 = jr_002_4812
 	         $4830 = jr_002_481b
+	         $4894 = BrowserPageText
 	         $489b = jr_002_4884
 	         $489d = jr_002_4886
-	         $48a2 = jr_002_488b
+	         $48a2 = BrowserEmptyText
 	         $490a = jr_002_48f3
 	         $490e = jr_002_48f7
 	         $491b = jr_002_4904
@@ -1231,7 +1245,10 @@ ROMX bank #2:
 	         $4cb1 = jr_002_4c9c
 	         $4ce7 = jr_002_4cd2
 	         $4dcc = jr_002_4db7
-	         $4de2 = jr_002_4dcd
+	         $4de2 = FileMenuTitleText
+	         $4dec = ArchiveWarningLine1
+	         $4dfb = ArchiveWarningLine2
+	         $4e17 = UnknownROMFormatText
 	         $4e5c = jr_002_4e47
 	         $4e6d = jr_002_4e58
 	         $4e72 = jr_002_4e5d
@@ -1243,6 +1260,11 @@ ROMX bank #2:
 	         $4f37 = jr_002_4f23
 	         $4f88 = jr_002_4f74
 	         $4f9a = jr_002_4f86
+	         $4fb9 = GameMenuTitleText
+	         $4fc3 = GameMenuSelectStartText
+	         $4fd4 = GameMenuSelectOnlyText
+	         $4fe0 = GameMenuCheatsText
+	         $4fe7 = GameMenuROMInfoText
 	         $5100 = jr_002_5017
 	         $510a = jr_002_5021
 	         $525c = jr_002_5248
@@ -1250,11 +1272,12 @@ ROMX bank #2:
 	         $5286 = jr_002_5272
 	         $529e = jr_002_5286
 	         $52af = jr_002_529b
-	         $5513 = jr_002_54fb
-	         $551e = jr_002_5506
-	         $5529 = jr_002_5511
-	         $5534 = jr_002_551c
-	         $553f = jr_002_5527
+	         $5508 = ROMInfoMapperText
+	         $5513 = ROMInfoROMSizeText
+	         $551e = ROMInfoRAMSizeText
+	         $5529 = ROMInfoSystemText
+	         $5534 = ROMInfoSGBText
+	         $553f = ROMInfoRTCText
 	         $554a = jr_002_5532
 	         $5551 = jr_002_5539
 	         $5559 = jr_002_5541
@@ -1275,12 +1298,17 @@ ROMX bank #2:
 	         $569e = jr_002_5686
 	         $56c6 = jr_002_56ae
 	         $56c8 = jr_002_56b0
+	         $56cb = SaveRAMMenuTitleText
+	         $56d4 = SaveRAMCancelText
+	         $56db = SaveRAMLoadText
+	         $56ec = SaveRAMSaveText
 	         $5727 = jr_002_570f
 	         $573a = jr_002_5722
 	         $573b = jr_002_5723
 	         $573f = jr_002_5727
 	         $5744 = jr_002_572c
 	         $5794 = jr_002_577c
+	         $581d = BrowserCallHL
 	         $58f1 = jr_002_58d9
 	         $58fb = jr_002_58e3
 	         $590b = jr_002_58f3
@@ -1291,7 +1319,7 @@ ROMX bank #2:
 	         $5953 = jr_002_593b
 	EMPTY: $595d-$5fff ($06a3 bytes)
 	SECTION: $6000-$7b94 ($1b95 bytes) ["ROM Bank 2, Section 2"]
-	         $6000 = Bank2Section2
+	         $6000 = ShowMainMenu
 	         $6101 = jr_002_6101
 	         $6163 = jr_002_6164
 	         $618a = jr_002_618b
@@ -1300,32 +1328,60 @@ ROMX bank #2:
 	         $630d = jr_002_630e
 	         $6317 = jr_002_6318
 	         $6325 = jr_002_6326
+	         $6328 = MainMenuTitleText
+	         $6332 = MainMenuOptionsText
+	         $633a = MainMenuRecentText
+	         $634a = MainMenuRandomText
+	         $6356 = MainMenuCheatsText
+	         $635d = MainMenuInfoText
+	         $6369 = MainMenuDiagnosticsText
+	         $6375 = MainMenuRTCText
+	         $637f = MainMenuAboutText
+	         $6385 = ShowAboutScreen
 	         $6394 = jr_002_6395
 	         $6399 = jr_002_639a
 	         $63ae = jr_002_63af
 	         $63ce = jr_002_63cf
 	         $6644 = jr_002_6664
 	         $666e = jr_002_668e
-	         $66e1 = Bank2DataProbably
-	         $6706 = jr_002_6726
+	         $66e1 = AboutTitleText
+	         $66f1 = AboutDeveloperHeadingText
+	         $6706 = AboutDeveloperText
+	         $6715 = AboutSupportHeadingText
+	         $672a = AboutSupportText
 	         $672d = jr_002_675f
 	         $672f = jr_002_6761
 	         $6731 = jr_002_6763
 	         $6733 = jr_002_6765
 	         $6737 = jr_002_6769
+	         $6739 = AboutControlsHeadingText
+	         $674e = AboutPageControlsText
+	         $6762 = AboutBMenuText
 	         $6763 = jr_002_6795
 	         $6765 = jr_002_6797
 	         $6767 = jr_002_6799
 	         $676b = jr_002_679d
 	         $676d = jr_002_679f
+	         $676e = AboutABackText
+	         $6775 = AboutAMenuText
+	         $6781 = AboutBBackText
+	         $6788 = AboutMainMenuText
+	         $6799 = AboutLastGameText
+	         $67ad = ShowDeviceInfo
 	         $67ce = jr_002_6800
 	         $67d7 = jr_002_6809
 	         $67ea = jr_002_681c
 	         $6802 = jr_002_6834
+	         $6fce = DeviceInfoCartText
+	         $6fe1 = DeviceInfoOSVersionText
+	         $6fed = DeviceInfoFPGAVersionText
 	         $6ff4 = jr_002_7038
 	         $6ff6 = jr_002_703a
+	         $6ff7 = DeviceInfoSystemText
+	         $7001 = DeviceInfoDateText
 	         $7009 = jr_002_704d
-	         $700b = jr_002_704f
+	         $700b = DeviceInfoTimeText
+	         $7017 = DeviceInfoPowerCounterText
 	         $702e = jr_002_72ed
 	         $7043 = jr_002_7302
 	         $704a = jr_002_7309
@@ -1338,6 +1394,7 @@ ROMX bank #2:
 	         $716d = jr_002_742c
 	         $7172 = jr_002_7431
 	         $7173 = jr_002_7432
+	         $7177 = ShowRTCSetup
 	         $7311 = jr_002_75d0
 	         $7332 = jr_002_75f1
 	         $736e = jr_002_760f
@@ -1356,6 +1413,7 @@ ROMX bank #2:
 	         $76df = jr_002_799e
 	         $76f6 = jr_002_79b5
 	         $76fd = jr_002_79b9
+	         $7716 = RTCSetupTitleText
 	         $7738 = jr_002_79f7
 	         $7748 = Bank2Function7A07
 	         $7761 = jr_002_7a20
@@ -1363,7 +1421,14 @@ ROMX bank #2:
 	         $776e = jr_002_7a2d
 	         $7789 = Bank2Function7A48
 	         $7792 = Bank2Function7A48.skip
+	         $77ba = ShowOSOptions
+	         $7a04 = OptionsCheatsText
+	         $7a12 = OptionsSwapABText
+	         $7a20 = OptionsHideSystemText
+	         $7a2e = OptionsSystemButtonText
+	         $7a3c = OptionsPocketFixText
 	         $7a55 = Bank2Function7A79
+	         $7a55 = MainMenuCallHL
 	         $7a56 = Bank2Function7A7A
 	         $7a65 = Bank2Function7A89
 	         $7a71 = Bank2Function7A95
@@ -1389,12 +1454,14 @@ ROMX bank #2:
 	TOTAL EMPTY: $0b0e bytes
 
 ROMX bank #3:
-	SECTION: $4000-$7fff ($4000 bytes) ["ROM Bank $003"]
+	SECTION: $4000-$5fff ($2000 bytes) ["ROM Bank $003"]
+	         $4000 = OSServiceDispatch
 	         $401d = jr_003_401d
 	         $403d = jr_003_403d
 	         $4045 = jr_003_4045
 	         $4081 = jr_003_4081
 	         $420a = jr_003_420b
+	         $420d = InitializeOSServices
 	         $426f = jr_003_4272
 	         $42e7 = jr_003_42e8
 	         $4650 = jr_003_45be
@@ -1413,6 +1480,7 @@ ROMX bank #3:
 	         $4898 = jr_003_47fe
 	         $48a1 = jr_003_4807
 	         $48b2 = jr_003_4818
+	         $48e3 = ShowOSStatus
 	         $4a08 = jr_003_496e
 	         $4a3c = jr_003_49a2
 	         $4ab2 = jr_003_4a18
@@ -1457,11 +1525,14 @@ ROMX bank #3:
 	         $4fbc = jr_003_4f22
 	         $4ff8 = jr_003_4f5c
 	         $5013 = jr_003_4f77
+	         $504b = ProbeSuperGameBoy
 	         $5059 = jr_003_4fbd
 	         $529c = jr_003_51f9
 	         $52ad = jr_003_520a
 	         $52b6 = jr_003_5213
-	         $6000 = Bank003Addr6000
+	         $5309 = OSServiceCallHL
+	SECTION: $6000-$7fff ($2000 bytes) ["OS page 7 image"]
+	         $6000 = CheatServiceDispatch
 	         $6069 = jr_003_6069
 	         $60a8 = jr_003_60a8
 	         $610b = jr_003_610b
@@ -1470,10 +1541,10 @@ ROMX bank #3:
 	         $6281 = jr_003_6281
 	         $62a5 = jr_003_62a5
 	         $62b3 = jr_003_62b3
-	         $62cd = jr_003_62cd
+	         $62cd = CheatImportLine1
 	         $62da = jr_003_62da
 	         $62dc = jr_003_62dc
-	         $62de = jr_003_62de
+	         $62de = CheatImportLine2
 	         $62e0 = jr_003_62e0
 	         $62e2 = jr_003_62e2
 	         $6340 = jr_003_6340
@@ -1490,6 +1561,9 @@ ROMX bank #3:
 	         $65f0 = jr_003_65f0
 	         $65fd = jr_003_65fd
 	         $6614 = jr_003_6614
+	         $6616 = CheatLastGameText
+	         $6629 = CheatApplyLine1
+	         $6639 = CheatApplyLine2
 	         $6653 = jr_003_6653
 	         $6687 = jr_003_668a
 	         $6690 = jr_003_6693
@@ -1497,6 +1571,7 @@ ROMX bank #3:
 	         $66aa = jr_003_66af
 	         $6705 = jr_003_6709
 	         $6870 = jr_003_6873
+	         $69d9 = CheatSavingText
 	         $6a07 = jr_003_6a08
 	         $6a15 = jr_003_6a16
 	         $6a21 = jr_003_6a22
@@ -1528,6 +1603,8 @@ ROMX bank #3:
 	         $6de9 = jr_003_6de6
 	         $6df1 = jr_003_6dee
 	         $6dfb = jr_003_6df8
+	         $6dfe = CheatCodeMenuText
+	         $6e0d = CheatClearText
 	         $6e71 = jr_003_6e6e
 	         $6ec8 = jr_003_6ec5
 	         $6ec9 = jr_003_6ec6
@@ -1564,13 +1641,16 @@ ROMX bank #3:
 	         $745f = jr_003_744c
 	         $7467 = jr_003_7454
 	         $7477 = jr_003_7464
+	         $749c = CheatCallHL
 	TOTAL EMPTY: $0000 bytes
 
 ROMX bank #4:
-	SECTION: $4000-$7fc6 ($3fc7 bytes) ["ROM Bank $004"]
+	SECTION: $4000-$5fff ($2000 bytes) ["ROM Bank $004"]
+	         $4000 = RecentGamesDispatch
 	         $406c = jr_004_406d
 	         $4076 = jr_004_4077
 	         $4078 = jr_004_4079
+	         $407b = ShowRecentGames
 	         $4129 = jr_004_4128
 	         $4166 = jr_004_4165
 	         $42bb = jr_004_42b4
@@ -1578,6 +1658,8 @@ ROMX bank #4:
 	         $4374 = jr_004_436d
 	         $43b3 = jr_004_43ac
 	         $43c9 = jr_004_43c2
+	         $43ce = RecentGamesTitleText
+	         $43df = RecentGamesEmptyText
 	         $4411 = jr_004_440a
 	         $4425 = jr_004_441e
 	         $4428 = jr_004_4421
@@ -1588,23 +1670,38 @@ ROMX bank #4:
 	         $45a3 = jr_004_4599
 	         $45dc = jr_004_45d2
 	         $4609 = jr_004_45ff
+	         $460c = RecentGamesPathText
+	         $4623 = UpdateRecentGames
 	         $464c = jr_004_4642
 	         $4689 = jr_004_467f
 	         $4708 = jr_004_46fb
 	         $4760 = jr_004_4753
 	         $4762 = jr_004_4755
+	         $4767 = RecentGamesCallHL
+	SECTION: $6000-$7fc6 ($1fc7 bytes) ["OS page 9 image"]
+	         $6000 = RunDiagnostics
+	         $600b = RunDiagnosticTests
 	         $60fa = jr_004_60fa
+	         $618f = DiagnosticTitleText
+	         $61a4 = DiagnosticSeparatorText
+	         $61ba = DiagnosticPressKeyText
+	         $61c8 = ReportDiagnosticResult
 	         $61fe = jr_004_61fe
+	         $621a = DiagnosticErrorText
 	         $6222 = jr_004_6222
+	         $6224 = DiagnosticDumpSaveRAM
 	         $629a = jr_004_629a
 	         $62c9 = jr_004_62c9
 	         $62cb = jr_004_62cb
+	         $62d0 = DiagnosticDumpRAMText
 	         $6328 = jr_004_6328
 	         $6343 = jr_004_6343
 	         $634e = jr_004_634e
 	         $6370 = jr_004_6370
 	         $639f = jr_004_639f
 	         $63a1 = jr_004_63a1
+	         $63a6 = DiagnosticLoadRAMText
+	         $63d0 = DiagnosticRestoreSaveRAM
 	         $63fc = jr_004_63fc
 	         $6406 = jr_004_6406
 	         $6412 = jr_004_6412
@@ -1623,6 +1720,8 @@ ROMX bank #4:
 	         $65ee = jr_004_65d6
 	         $65fb = jr_004_65e3
 	         $6602 = jr_004_65ea
+	         $6614 = DiagnosticRAMTestText
+	         $6620 = DiagnosticRAMTest
 	         $668d = jr_004_6675
 	         $66b0 = jr_004_6695
 	         $66f7 = jr_004_66d9
@@ -1639,6 +1738,8 @@ ROMX bank #4:
 	         $6844 = jr_004_6815
 	         $6851 = jr_004_6822
 	         $6858 = jr_004_6829
+	         $686a = DiagnosticROMTestText
+	         $6876 = DiagnosticROMTest
 	         $68e3 = jr_004_68b4
 	         $6a5d = jr_004_6a2e
 	         $6acd = jr_004_6a9e
@@ -1652,12 +1753,17 @@ ROMX bank #4:
 	         $6de9 = jr_004_6df2
 	         $6ef1 = jr_004_6efa
 	         $6ef3 = jr_004_6efc
+	         $6ef6 = DiagnosticRTCTestText
+	         $6f02 = DiagnosticRTCTest
 	         $6ff0 = jr_004_6ff9
 	         $7032 = jr_004_703b
 	         $7081 = jr_004_708a
 	         $712f = jr_004_714d
 	         $7133 = jr_004_7151
 	         $7147 = jr_004_7165
+	         $714c = DiagnosticSDTestText
+	         $7158 = DiagnosticSDTestPathText
+	         $716e = DiagnosticSDTest
 	         $719a = jr_004_71b8
 	         $71c5 = jr_004_71e3
 	         $7321 = jr_004_7356
@@ -1667,9 +1773,14 @@ ROMX bank #4:
 	         $742d = jr_004_7465
 	         $7431 = jr_004_7469
 	         $7444 = jr_004_747d
+	         $7447 = DiagnosticCopyTestText
+	         $7453 = DiagnosticCopyTest
 	         $74c0 = jr_004_74f9
+	         $764e = DiagnosticDateText
 	         $7657 = jr_004_7690
+	         $7659 = DiagnosticTimeText
 	         $7660 = jr_004_7699
+	         $7662 = DiagnosticCallHL
 	         $7687 = jr_004_76c0
 	EMPTY: $7fc7-$7fff ($0039 bytes)
 	TOTAL EMPTY: $0039 bytes

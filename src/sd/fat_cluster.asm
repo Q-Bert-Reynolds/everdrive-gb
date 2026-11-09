@@ -334,7 +334,7 @@ ReadNextFATCluster:
   ld l, a
   push hl
   push bc
-  call Bank1Function4323
+  call ReadLittleEndianDWord
   add sp, $04
   ld e, $00
 
